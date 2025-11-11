@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+
+members = ["xchange-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["mountainsea-lab <w1999wtw3537@gmail.com>"]
+repository = "https://github.com/mountainsea-lab/XChange-Rust.git"
+
+[workspace.dependencies]
