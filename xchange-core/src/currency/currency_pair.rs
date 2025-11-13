@@ -39,6 +39,24 @@ impl CurrencyPair {
         Self::new(base, counter)
     }
 
+    /// Parse currency pair from a string in the same format as returned by toString() method - ABC/XYZ or "ETH-USD"
+    pub fn from_str_pair(s: &str) -> Result<Self, String> {
+        let delimiter = if s.contains('-') {
+            '-'
+        } else if s.contains('/') {
+            '/'
+        } else {
+            return Err(format!("Could not parse currency pair from '{}'", s));
+        };
+
+        let parts: Vec<&str> = s.splitn(2, delimiter).collect();
+        if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+            return Err(format!("Could not parse currency pair from '{}'", s));
+        }
+
+        Ok(Self::from_symbols(parts[0].trim(), parts[1].trim()))
+    }
+
     /// 返回 "EUR/USD" 等格式
     pub fn symbol(&self) -> String {
         format!("{}/{}", self.base.code, self.counter.code)
