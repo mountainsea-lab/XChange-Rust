@@ -111,7 +111,7 @@ impl PartialEq for CurrencyAttributes {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Currency {
     /// Currency code (for example, "BTC", "USD", "ETH")
-    code: String,
+    pub(crate) code: String,
 
     /// Currency attributes
     attributes: CurrencyAttributes,
