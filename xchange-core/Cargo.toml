@@ -10,4 +10,5 @@ repository.workspace = true
 phf = {workspace = true}
 serde = { workspace = true, features = ["derive"] }
 serde_json = {workspace = true }
-once_cell = "1.20.3"
+once_cell = {workspace = true }
+iso_currency = {workspace = true }
