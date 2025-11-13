@@ -1,6 +1,9 @@
 use crate::currency::currency::Currency;
 use crate::instrument::Instrument;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
 ///  Value object to provide the following to API:
 ///
@@ -79,5 +82,46 @@ impl Instrument for CurrencyPair {
 
     fn symbol(&self) -> String {
         self.symbol()
+    }
+}
+
+/// Display output
+impl fmt::Display for CurrencyPair {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.base.code, self.counter.code)
+    }
+}
+
+/// impl PartialEq / Eq
+impl PartialEq for CurrencyPair {
+    fn eq(&self, other: &Self) -> bool {
+        self.base == other.base && self.counter == other.counter
+    }
+}
+impl Eq for CurrencyPair {}
+
+/// impl Hash
+impl Hash for CurrencyPair {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.base.hash(state);
+        self.counter.hash(state);
+    }
+}
+
+impl Ord for CurrencyPair {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Simulate Java's 16-bit left shift logic
+        let base_cmp = self.base.cmp(&other.base);
+        if base_cmp != Ordering::Equal {
+            return base_cmp;
+        }
+        // counter is used as a secondary comparison
+        self.counter.cmp(&other.counter)
+    }
+}
+
+impl PartialOrd for CurrencyPair {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
