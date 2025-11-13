@@ -58,9 +58,13 @@ impl CurrencyPair {
         Ok(Self::from_symbols(parts[0].trim(), parts[1].trim()))
     }
 
-    /// 返回 "EUR/USD" 等格式
+    /// return "EUR/USD" ..format
     pub fn symbol(&self) -> String {
         format!("{}/{}", self.base.code, self.counter.code)
+    }
+
+    pub fn contains(&self, currency: &Currency) -> bool {
+        self.base == *currency || self.counter == *currency
     }
 }
 
