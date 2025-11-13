@@ -277,10 +277,9 @@ impl Currency {
             return Some(Arc::clone(self));
         }
 
-        if let currency = Currency::instance(code) {
-            if Arc::ptr_eq(&currency, self) || currency.code == self.code {
-                return Some(currency);
-            }
+        let currency = Currency::instance(code);
+        if Arc::ptr_eq(&currency, self) || currency.code == self.code {
+            return Some(currency);
         }
 
         if !self.attributes.codes.iter().any(|c| c.as_str() == code) {
