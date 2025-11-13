@@ -1,4 +1,5 @@
 use crate::currency::currency::Currency;
+use crate::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
 ///  Value object to provide the following to API:
@@ -60,5 +61,19 @@ impl CurrencyPair {
     /// 返回 "EUR/USD" 等格式
     pub fn symbol(&self) -> String {
         format!("{}/{}", self.base.code, self.counter.code)
+    }
+}
+
+impl Instrument for CurrencyPair {
+    fn base(&self) -> &Currency {
+        &self.base
+    }
+
+    fn counter(&self) -> &Currency {
+        &self.counter
+    }
+
+    fn symbol(&self) -> String {
+        self.symbol()
     }
 }
