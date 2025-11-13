@@ -4,25 +4,26 @@
 
 pub mod currency;
 
+use iso_currency::Currency;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 /// Currency attributes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrencyAttributes {
-    /// 所有货币代码(包括通用代码和替代代码)
+    /// all codes(including common and alternative codes)
     pub codes: BTreeSet<String>,
 
-    /// ISO 货币代码(如果存在)
+    /// ISO currecy code(if exists)
     pub iso_code: Option<String>,
 
-    /// 通用代码(主要使用的代码)
+    /// common code(main use code)
     pub common_code: String,
 
-    /// 货币名称
+    /// currency name
     pub name: String,
 
-    /// Unicode 符号
+    /// Unicode symbol
     pub unicode: String,
 }
 
@@ -36,38 +37,45 @@ impl CurrencyAttributes {
     ) -> Self {
         let common_code = common_code.into();
 
-        // construct the set of codes
-        let mut codes = BTreeSet::new();
+        // 1. create codes set (unique and sorted)
+        let mut codes: BTreeSet<String> = alternative_codes.iter().cloned().collect();
         codes.insert(common_code.clone());
-        for code in alternative_codes {
-            codes.insert(code.clone());
-        }
 
-        // try to recognize ISO currency code and crypto currency code
-        let mut iso_code = None;
-        let mut possible_iso_proposal_crypto_code = None;
+        // 2. try find ISO code from X-codes; first standard ISO, then X-codes
+        let mut iso_code: Option<String> = None;
+        let mut possible_x_code: Option<String> = None;
 
         for code in &codes {
-            // 尝试识别标准 ISO 货币代码 try to recognize standard ISO currency code
-            // 注: Rust 标准库没有 java.util.Currency 等价物
-            // 可以使用 iso_currency crate 或自定义逻辑
-
-            // 识别以 X 开头的加密货币代码
+            if iso_code.is_none() {
+                if let Some(iso) = Currency::from_code(code) {
+                    iso_code = Some(iso.code().to_string());
+                }
+            }
             if code.starts_with('X') {
-                possible_iso_proposal_crypto_code = Some(code.clone());
+                possible_x_code = Some(code.clone());
             }
         }
 
-        // 如果没有找到标准 ISO 代码,使用加密货币代码
-        if iso_code.is_none() {
-            iso_code = possible_iso_proposal_crypto_code;
-        }
+        let iso_code = iso_code.or(possible_x_code);
 
-        // 确定名称
-        let final_name = name.unwrap_or_else(|| common_code.clone());
+        // 3.  default name is common_code
+        let final_name = if let Some(name) = name {
+            name
+        } else if let Some(ref iso) = iso_code {
+            // try find name from ISO code
+            Currency::from_code(iso).map_or(common_code.clone(), |c| c.name().to_string())
+        } else {
+            common_code.clone()
+        };
 
-        // 确定 Unicode 符号
-        let final_unicode = unicode.unwrap_or_else(|| common_code.clone());
+        // 4. unicode default to common_code
+        let final_unicode = if let Some(unicode) = unicode {
+            unicode
+        } else if let Some(ref iso) = iso_code {
+            Currency::from_code(iso).map_or(common_code.clone(), |c| c.symbol().to_string())
+        } else {
+            common_code.clone()
+        };
 
         Self {
             codes,
@@ -78,7 +86,7 @@ impl CurrencyAttributes {
         }
     }
 
-    /// 检查是否包含指定代码
+    /// is contains the specified code
     pub fn contains_code(&self, code: &str) -> bool {
         self.codes.contains(code)
     }
@@ -92,7 +100,7 @@ impl std::hash::Hash for CurrencyAttributes {
 
 impl Eq for CurrencyAttributes {}
 
-// 基于 common_code 的相等性比较
+// based on common_code equality
 impl PartialEq for CurrencyAttributes {
     fn eq(&self, other: &Self) -> bool {
         self.common_code == other.common_code
