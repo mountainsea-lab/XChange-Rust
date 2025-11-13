@@ -164,7 +164,7 @@ impl Currency {
     }
 
     ///  returns the original code used to create this currency instance.
-    pub fn code(&self) -> &str {
+    pub fn currency_code(&self) -> &str {
         &self.code
     }
 
