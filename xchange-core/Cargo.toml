@@ -7,3 +7,8 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
+phf = {workspace = true}
+serde = { workspace = true, features = ["derive"] }
+serde_json = {workspace = true }
+once_cell = {workspace = true }
+iso_currency = {workspace = true }

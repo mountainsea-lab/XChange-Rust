@@ -11,3 +11,9 @@ authors = ["mountainsea-lab <w1999wtw3537@gmail.com>"]
 repository = "https://github.com/mountainsea-lab/XChange-Rust.git"
 
 [workspace.dependencies]
+phf = { version = "0.13.1", features = ["macros"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145" }
+once_cell = "1.20.3"
+iso_currency = "0.5.3"
+
