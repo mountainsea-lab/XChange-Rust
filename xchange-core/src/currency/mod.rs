@@ -3,6 +3,7 @@
 //! It also has a set of alternative codes that can be used to represent the same currency.
 
 pub mod currency;
+mod currency_pair;
 
 use crate::currency::currency::Currency;
 use once_cell::sync::Lazy;
