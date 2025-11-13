@@ -11,3 +11,4 @@ authors = ["mountainsea-lab <w1999wtw3537@gmail.com>"]
 repository = "https://github.com/mountainsea-lab/XChange-Rust.git"
 
 [workspace.dependencies]
+phf = { version = "0.13.1", features = ["macros"] }
