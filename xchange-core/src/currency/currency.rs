@@ -7,22 +7,37 @@ use std::sync::Mutex;
 static CURRENCIES: Lazy<Mutex<BTreeMap<String, Currency>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
-/**
- * A Currency class roughly modeled after {@link java.util.Currency}. Each object retains the code
- * it was acquired with -- so {@link #getInstance}("BTC").{@link #getCurrencyCode}() will always be
- * "BTC", even though the proposed ISO 4217 code is "XBT"
- */
+///  A Currency class roughly modeled after {@link java.util.Currency}. Each object retains the code
+///  it was acquired with -- so {@link #getInstance}("BTC").{@link #getCurrencyCode}() will always be
+///  "BTC", even though the proposed ISO 4217 code is "XBT"
 #[derive(Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct Currency {
-    /// 货币代码(如 "BTC", "USD", "ETH")
+    /// Currency code (for example, "BTC", "USD", "ETH")
     code: String,
 
-    /// 货币属性
+    /// Currency attributes
     attributes: CurrencyAttributes,
 }
 
 impl Currency {
-    /** Returns a Currency instance for the given currency code. */
+    ///  Public constructor. Links to an existing currency.
+    pub fn new(code: &str) -> Self {
+        // get_instance 逻辑：如果存在返回已有实例，否则创建新的
+        let existing = Self::instance(code);
+        Self {
+            code: code.to_uppercase(),
+            attributes: existing.attributes.clone(),
+        }
+    }
+
+    fn new_with_code_attributes(alternative_code: &str, attributes: CurrencyAttributes) -> Self {
+        Self {
+            code: alternative_code.to_uppercase(),
+            attributes,
+        }
+    }
+
+    /// Returns a Currency instance for the given currency code.
     pub fn instance(code: &str) -> Currency {
         if let Some(currency) = Self::instance_no_create(code) {
             currency
@@ -31,20 +46,17 @@ impl Currency {
         }
     }
 
-    /** Returns the Currency instance for the given currency code only if one already exists. */
+    /// Returns the Currency instance for the given currency code only if one already exists.
     pub fn instance_no_create(code: &str) -> Option<Currency> {
         let map = CURRENCIES.lock().unwrap();
         map.get(&code.to_uppercase()).cloned()
     }
 
-    /**
-     * Factory
-     *
-     * @param commonCode commonly used code for this currency: "BTC"
-     * @param name Name of the currency: "Bitcoin"
-     * @param unicode Unicode symbol for the currency: "\u20BF" or "฿"
-     * @param alternativeCodes Alternative codes for the currency: "XBT"
-     */
+    /// Factory
+    /// @param commonCode commonly used code for this currency: "BTC"
+    /// @param name Name of the currency: "Bitcoin"
+    /// @param unicode Unicode symbol for the currency: "\u20BF" or "฿"
+    /// @param alternativeCodes Alternative codes for the currency: "XBT"
     pub fn create_currency(
         common_code: &str,
         name: Option<String>,

@@ -1,9 +1,13 @@
+//！ A Currency represents a monetary unit, such as the dollar, euro, or yen.
+//！ It has a unique three-letter code, a name, and a number of decimal places.
+//! It also has a set of alternative codes that can be used to represent the same currency.
+
 pub mod currency;
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-/// 货币属性
+/// Currency attributes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrencyAttributes {
     /// 所有货币代码(包括通用代码和替代代码)
@@ -23,7 +27,7 @@ pub struct CurrencyAttributes {
 }
 
 impl CurrencyAttributes {
-    /// 创建新的货币属性
+    /// create a new CurrencyAttributes instance
     pub fn new(
         common_code: impl Into<String>,
         name: Option<String>,
@@ -32,19 +36,19 @@ impl CurrencyAttributes {
     ) -> Self {
         let common_code = common_code.into();
 
-        // 构建代码集合
+        // construct the set of codes
         let mut codes = BTreeSet::new();
         codes.insert(common_code.clone());
         for code in alternative_codes {
             codes.insert(code.clone());
         }
 
-        // 尝试识别 ISO 代码和加密货币代码
+        // try to recognize ISO currency code and crypto currency code
         let mut iso_code = None;
         let mut possible_iso_proposal_crypto_code = None;
 
         for code in &codes {
-            // 尝试识别标准 ISO 货币代码
+            // 尝试识别标准 ISO 货币代码 try to recognize standard ISO currency code
             // 注: Rust 标准库没有 java.util.Currency 等价物
             // 可以使用 iso_currency crate 或自定义逻辑
 
