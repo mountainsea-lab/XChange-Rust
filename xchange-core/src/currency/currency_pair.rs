@@ -1,9 +1,11 @@
 use crate::currency::currency::Currency;
 use crate::instrument::Instrument;
-use serde::{Deserialize, Serialize};
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 ///  Value object to provide the following to API:
 ///
@@ -14,10 +16,10 @@ use std::hash::{Hash, Hasher};
 ///
 ///   <p>Symbol pairs are quoted, for example, as EUR/USD 1.25 such that 1 EUR can be purchased with
 ///   1.25 USD
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CurrencyPair {
-    pub base: Currency,
-    pub counter: Currency,
+    pub base: Arc<Currency>,
+    pub counter: Arc<Currency>,
 }
 
 impl CurrencyPair {
@@ -27,7 +29,7 @@ impl CurrencyPair {
     ///    @param base The base currency is what you're wanting to buy/sell
     ///    @param counter The counter currency is what currency you want to use to pay/receive for your
     ///       purchase/sale.
-    pub fn new(base: Currency, counter: Currency) -> Self {
+    pub fn new(base: Arc<Currency>, counter: Arc<Currency>) -> Self {
         Self { base, counter }
     }
 
@@ -66,18 +68,21 @@ impl CurrencyPair {
         format!("{}/{}", self.base.code, self.counter.code)
     }
 
-    pub fn contains(&self, currency: &Currency) -> bool {
-        self.base == *currency || self.counter == *currency
+    pub fn contains(&self, currency: &Arc<Currency>) -> bool {
+        Arc::ptr_eq(&self.base, currency)
+            || Arc::ptr_eq(&self.counter, currency)
+            || self.base.code == currency.code
+            || self.counter.code == currency.code
     }
 }
 
 impl Instrument for CurrencyPair {
-    fn base(&self) -> &Currency {
-        &self.base
+    fn base(&self) -> Arc<Currency> {
+        Arc::clone(&self.base)
     }
 
-    fn counter(&self) -> &Currency {
-        &self.counter
+    fn counter(&self) -> Arc<Currency> {
+        Arc::clone(&self.counter)
     }
 
     fn symbol(&self) -> String {
@@ -95,28 +100,51 @@ impl fmt::Display for CurrencyPair {
 /// impl PartialEq / Eq
 impl PartialEq for CurrencyPair {
     fn eq(&self, other: &Self) -> bool {
-        self.base == other.base && self.counter == other.counter
+        // Both Arc Direct Same Currency
+        let base_eq = Arc::ptr_eq(&self.base, &other.base) || self.base.code == other.base.code;
+        let counter_eq =
+            Arc::ptr_eq(&self.counter, &other.counter) || self.counter.code == other.counter.code;
+        base_eq && counter_eq
     }
 }
+
 impl Eq for CurrencyPair {}
 
 /// impl Hash
 impl Hash for CurrencyPair {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.base.hash(state);
-        self.counter.hash(state);
+        // use code field，void depth hash attributes
+        self.base.code.hash(state);
+        self.counter.code.hash(state);
     }
 }
 
 impl Ord for CurrencyPair {
     fn cmp(&self, other: &Self) -> Ordering {
+        // 将 base 和 counter 的比较结果转换为 -1/0/1
+        let base_cmp = match self.base.code.cmp(&other.base.code) {
+            Ordering::Less => -1i32,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1,
+        };
+
+        let counter_cmp = match self.counter.code.cmp(&other.counter.code) {
+            Ordering::Less => -1i32,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1,
+        };
+
         // Simulate Java's 16-bit left shift logic
-        let base_cmp = self.base.cmp(&other.base);
-        if base_cmp != Ordering::Equal {
-            return base_cmp;
+        let java_like_cmp = (base_cmp << 16) + counter_cmp;
+
+        // Convert Rust Ordering
+        if java_like_cmp < 0 {
+            Ordering::Less
+        } else if java_like_cmp > 0 {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
         }
-        // counter is used as a secondary comparison
-        self.counter.cmp(&other.counter)
     }
 }
 
@@ -125,3 +153,31 @@ impl PartialOrd for CurrencyPair {
         Some(self.cmp(other))
     }
 }
+
+impl Serialize for CurrencyPair {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = format!("{}/{}", self.base.code, self.counter.code);
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> Deserialize<'de> for CurrencyPair {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let parts: Vec<&str> = s.split('/').collect();
+        if parts.len() != 2 {
+            return Err(serde::de::Error::custom("Invalid CurrencyPair string"));
+        }
+        Ok(Self::from_symbols(parts[0], parts[1]))
+    }
+}
+
+/// Currency_pair const todo
+pub static EUR_USD: Lazy<Arc<CurrencyPair>> =
+    Lazy::new(|| Arc::new(CurrencyPair::from_symbols("EUR", "USD")));

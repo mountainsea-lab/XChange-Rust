@@ -1,8 +1,11 @@
 use crate::currency::CURRENCIES;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::hash::{Hash, Hasher};
+use std::string::ToString;
+use std::sync::Arc;
 
 /// Currency attributes
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -197,7 +200,7 @@ impl Currency {
     }
 
     /// Returns a Currency instance for the given currency code.
-    pub fn instance(code: &str) -> Currency {
+    pub fn instance(code: &str) -> Arc<Self> {
         if let Some(currency) = Self::instance_no_create(code) {
             currency
         } else {
@@ -206,7 +209,7 @@ impl Currency {
     }
 
     /// Returns the Currency instance for the given currency code only if one already exists.
-    pub fn instance_no_create(code: &str) -> Option<Currency> {
+    pub fn instance_no_create(code: &str) -> Option<Arc<Currency>> {
         let map = CURRENCIES.lock().unwrap();
         map.get(&code.to_uppercase()).cloned()
     }
@@ -221,7 +224,7 @@ impl Currency {
         name: Option<String>,
         unicode: Option<String>,
         alternative_codes: &[String],
-    ) -> Currency {
+    ) -> Arc<Self> {
         let common_code = common_code.to_uppercase();
 
         // 1. construct CurrencyAttributes
@@ -246,20 +249,20 @@ impl Currency {
             let common_code = common_code.clone();
             if *code == common_code {
                 // common code allways insert map
-                map.insert(code.clone(), common_currency.clone());
+                map.insert(code.clone(), Arc::new(common_currency.clone()));
             } else if !map.contains_key(code) {
                 // alternative code insert map if only not contains key
                 map.insert(
                     code.clone(),
-                    Currency {
+                    Arc::new(Currency {
                         code: code.clone(),
                         attributes: attributes.clone(),
-                    },
+                    }),
                 );
             }
         }
 
-        common_currency
+        Arc::new(common_currency)
     }
 
     ///  returns the original code used to create this currency instance.
@@ -269,36 +272,37 @@ impl Currency {
 
     ///  retruns a Currency instance with the given code.
     ///  if code is not listed for this currency.
-    pub fn code_currency(&self, code: &str) -> Self {
+    pub fn code_currency(self: &Arc<Self>, code: &str) -> Option<Arc<Self>> {
         if code == self.code {
-            return self.clone();
+            return Some(Arc::clone(self));
         }
 
-        let currency = Self::instance(code);
-        if currency == *self {
-            return currency;
+        if let currency = Currency::instance(code) {
+            if Arc::ptr_eq(&currency, self) || currency.code == self.code {
+                return Some(currency);
+            }
         }
 
-        if !self.attributes.codes.contains(code) {
-            panic!("Code not listed for this currency: {}", code);
+        if !self.attributes.codes.iter().any(|c| c.as_str() == code) {
+            return None;
         }
 
-        Currency {
+        Some(Arc::new(Currency {
             code: code.to_string(),
             attributes: self.attributes.clone(),
-        }
+        }))
     }
 
     ///  get ISO 4217 Currency, if it exists, otherwise return self.
-    pub fn iso_4217_currency(&self) -> Self {
+    pub fn iso_4217_currency(self: &Arc<Self>) -> Option<Arc<Self>> {
         match &self.attributes.iso_code {
             Some(iso_code) => self.code_currency(iso_code),
-            None => self.clone(),
+            None => Some(Arc::clone(self)),
         }
     }
 
     /// get Currency instance with the common code for this currency.
-    pub fn commonly_used_currency(&self) -> Self {
+    pub fn commonly_used_currency(self: &Arc<Self>) -> Option<Arc<Self>> {
         self.code_currency(&self.attributes.common_code)
     }
 
@@ -317,3 +321,17 @@ impl Currency {
         &self.attributes.name
     }
 }
+
+/// 预定义主要币种，按需初始化
+pub static AED: Lazy<Arc<Currency>> = Lazy::new(|| {
+    Currency::create_currency(
+        "AED",
+        Some("United Arab Emirates Dirham".to_string()),
+        None,
+        &[],
+    )
+});
+pub static USD: Lazy<Arc<Currency>> =
+    Lazy::new(|| Currency::create_currency("USD", Some("US Dollar".to_string()), None, &[]));
+pub static EUR: Lazy<Arc<Currency>> =
+    Lazy::new(|| Currency::create_currency("EUR", Some("Euro".to_string()), None, &[]));
