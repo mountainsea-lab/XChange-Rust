@@ -116,7 +116,7 @@ impl PartialOrd for FuturesContract {
     }
 }
 
-// Display 调用 symbol()，保持 to_string() 与 symbol() 一致
+// Display call symbol()，keep to_string() and symbol() same
 impl fmt::Display for FuturesContract {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.symbol())
