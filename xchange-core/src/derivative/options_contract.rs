@@ -66,4 +66,30 @@ impl OptionsContract {
             option_type,
         })
     }
+
+    pub fn expire_date(&self) -> NaiveDate {
+        self.expire_date
+    }
+
+    pub fn strike(&self) -> &Decimal {
+        &self.strike
+    }
+
+    pub fn option_type(&self) -> OptionType {
+        self.option_type
+    }
+}
+
+impl std::fmt::Display for OptionsContract {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}/{}/{}/{}/{}",
+            self.currency_pair.base,
+            self.currency_pair.counter,
+            self.expire_date.format("%y%m%d"),
+            self.strike,
+            self.option_type.to_string()
+        )
+    }
 }
