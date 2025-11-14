@@ -4,6 +4,7 @@ use crate::derivative::Derivative;
 use crate::instrument::Instrument;
 use regex::Regex;
 use std::cmp::Ordering;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -112,5 +113,12 @@ impl Ord for FuturesContract {
 impl PartialOrd for FuturesContract {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+// Display 调用 symbol()，保持 to_string() 与 symbol() 一致
+impl fmt::Display for FuturesContract {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.symbol())
     }
 }
