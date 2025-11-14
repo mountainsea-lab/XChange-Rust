@@ -10,7 +10,7 @@ pub trait Derivative {
     fn currency_pair(&self) -> &CurrencyPair;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OptionType {
     Call,
     Put,

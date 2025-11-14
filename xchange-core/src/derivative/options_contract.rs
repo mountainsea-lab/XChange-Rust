@@ -4,7 +4,9 @@ use crate::derivative::{Derivative, OptionType};
 use crate::instrument::Instrument;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
+use std::cmp::Ordering;
 use std::fmt;
+use std::hash::Hasher;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -112,6 +114,48 @@ impl Instrument for OptionsContract {
 impl Derivative for OptionsContract {
     fn currency_pair(&self) -> &CurrencyPair {
         &self.currency_pair
+    }
+}
+
+impl PartialEq for OptionsContract {
+    fn eq(&self, other: &Self) -> bool {
+        self.currency_pair == other.currency_pair
+            && self.expire_date == other.expire_date
+            && self.strike == other.strike
+            && self.option_type == other.option_type
+    }
+}
+
+impl Eq for OptionsContract {}
+
+impl std::hash::Hash for OptionsContract {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.currency_pair.hash(state);
+        self.expire_date.hash(state);
+        self.strike.hash(state);
+        self.option_type.hash(state);
+    }
+}
+
+impl PartialOrd for OptionsContract {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OptionsContract {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // COMPARATOR: currencyPair -> expireDate -> strike -> type
+        match self.currency_pair.cmp(&other.currency_pair) {
+            Ordering::Equal => match self.expire_date.cmp(&other.expire_date) {
+                Ordering::Equal => match self.strike.cmp(&other.strike) {
+                    Ordering::Equal => self.option_type.cmp(&other.option_type),
+                    other => other,
+                },
+                other => other,
+            },
+            other => other,
+        }
     }
 }
 
