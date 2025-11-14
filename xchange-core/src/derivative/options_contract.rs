@@ -1,8 +1,12 @@
+use crate::currency::currency::Currency;
 use crate::currency::currency_pair::CurrencyPair;
 use crate::derivative::OptionType;
+use crate::instrument::Instrument;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
+use std::fmt;
 use std::str::FromStr;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct OptionsContract {
@@ -78,12 +82,9 @@ impl OptionsContract {
     pub fn option_type(&self) -> OptionType {
         self.option_type
     }
-}
 
-impl std::fmt::Display for OptionsContract {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
+    fn symbol(&self) -> String {
+        format!(
             "{}/{}/{}/{}/{}",
             self.currency_pair.base,
             self.currency_pair.counter,
@@ -91,5 +92,25 @@ impl std::fmt::Display for OptionsContract {
             self.strike,
             self.option_type.to_string()
         )
+    }
+}
+
+impl Instrument for OptionsContract {
+    fn base(&self) -> Arc<Currency> {
+        self.currency_pair.base()
+    }
+
+    fn counter(&self) -> Arc<Currency> {
+        self.currency_pair.counter()
+    }
+
+    fn symbol(&self) -> String {
+        self.symbol()
+    }
+}
+
+impl fmt::Display for OptionsContract {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.symbol())
     }
 }

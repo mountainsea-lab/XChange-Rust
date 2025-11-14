@@ -1,5 +1,6 @@
 use crate::currency::currency::Currency;
 use crate::currency::currency_pair::CurrencyPair;
+use crate::derivative::Derivative;
 use crate::instrument::Instrument;
 use regex::Regex;
 use std::cmp::Ordering;
@@ -44,10 +45,6 @@ impl FuturesContract {
         })
     }
 
-    pub fn currency_pair(&self) -> Arc<CurrencyPair> {
-        Arc::clone(&self.currency_pair)
-    }
-
     pub fn prompt(&self) -> Option<&str> {
         self.prompt.as_deref()
     }
@@ -80,6 +77,12 @@ impl Instrument for FuturesContract {
     /// return "EUR/USD" ..format
     fn symbol(&self) -> String {
         self.symbol()
+    }
+}
+
+impl Derivative for FuturesContract {
+    fn currency_pair(&self) -> &CurrencyPair {
+        &self.currency_pair
     }
 }
 

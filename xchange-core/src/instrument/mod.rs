@@ -13,6 +13,8 @@ pub trait Instrument: fmt::Debug + Send + Sync {
 
     /// default symbol pair，example "BTC/USDT"
     fn symbol(&self) -> String {
-        format!("{}/{}", self.base().code, self.counter().code)
+        let base = self.base();
+        let counter = self.counter();
+        format!("{}/{}", base.code, counter.code)
     }
 }
