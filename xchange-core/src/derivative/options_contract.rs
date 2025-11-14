@@ -1,6 +1,6 @@
 use crate::currency::currency::Currency;
 use crate::currency::currency_pair::CurrencyPair;
-use crate::derivative::OptionType;
+use crate::derivative::{Derivative, OptionType};
 use crate::instrument::Instrument;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -106,6 +106,12 @@ impl Instrument for OptionsContract {
 
     fn symbol(&self) -> String {
         self.symbol()
+    }
+}
+
+impl Derivative for OptionsContract {
+    fn currency_pair(&self) -> &CurrencyPair {
+        &self.currency_pair
     }
 }
 
