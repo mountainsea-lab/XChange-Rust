@@ -164,3 +164,52 @@ impl fmt::Display for OptionsContract {
         write!(f, "{}", self.symbol())
     }
 }
+
+/// OptionsContract Builder helper
+pub struct OptionsContractBuilder {
+    currency_pair: Option<CurrencyPair>,
+    expire_date: Option<NaiveDate>,
+    strike: Option<Decimal>,
+    option_type: Option<OptionType>,
+}
+
+impl OptionsContractBuilder {
+    pub fn new() -> Self {
+        Self {
+            currency_pair: None,
+            expire_date: None,
+            strike: None,
+            option_type: None,
+        }
+    }
+
+    pub fn currency_pair(mut self, val: CurrencyPair) -> Self {
+        self.currency_pair = Some(val);
+        self
+    }
+
+    pub fn expire_date(mut self, val: NaiveDate) -> Self {
+        self.expire_date = Some(val);
+        self
+    }
+
+    pub fn strike(mut self, val: Decimal) -> Self {
+        self.strike = Some(val);
+        self
+    }
+
+    pub fn option_type(mut self, val: OptionType) -> Self {
+        self.option_type = Some(val);
+        self
+    }
+
+    /// Constructor OptionsContract
+    pub fn build(self) -> OptionsContract {
+        OptionsContract {
+            currency_pair: self.currency_pair.expect("currency_pair is required"),
+            expire_date: self.expire_date.expect("expire_date is required"),
+            strike: self.strike.expect("strike is required"),
+            option_type: self.option_type.expect("option_type is required"),
+        }
+    }
+}
