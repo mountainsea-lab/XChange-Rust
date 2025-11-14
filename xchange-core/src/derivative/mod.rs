@@ -2,14 +2,12 @@ pub mod futures_contract;
 pub mod options_contract;
 
 use crate::currency::currency_pair::CurrencyPair;
-use std::str::FromStr;
 use std::fmt;
+use std::str::FromStr;
 
 pub trait Derivative {
     fn currency_pair(&self) -> &CurrencyPair;
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OptionType {
