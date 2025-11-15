@@ -2,6 +2,7 @@ use crate::currency::currency::Currency;
 use chrono::{DateTime, Utc};
 use log::warn;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
@@ -14,7 +15,7 @@ use std::hash::{Hash, Hasher};
 ///   object.
 ///
 ///   <p>This class is immutable.
-///
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Balance {
     pub currency: Currency,
     // Invariant:
