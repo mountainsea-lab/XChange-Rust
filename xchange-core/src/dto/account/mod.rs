@@ -8,6 +8,7 @@ pub mod address_with_tag;
 pub mod balance;
 pub mod fee;
 mod funding_record;
+mod open_position;
 pub mod wallet;
 
 /// wallet enum
