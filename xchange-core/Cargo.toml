@@ -14,3 +14,4 @@ iso_currency = {workspace = true }
 regex = {workspace = true }
 chrono = {workspace = true }
 rust_decimal = {workspace = true }
+log = {workspace = true }
