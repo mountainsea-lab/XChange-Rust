@@ -1,8 +1,7 @@
-use crate::instrument::{Instrument, InstrumentDTO};
+use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FundingRate {
