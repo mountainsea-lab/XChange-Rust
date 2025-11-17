@@ -2,6 +2,7 @@ pub mod futures_contract;
 pub mod options_contract;
 
 use crate::currency::currency_pair::CurrencyPair;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
@@ -10,7 +11,7 @@ pub trait Derivative {
     fn currency_pair(&self) -> &CurrencyPair;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OptionType {
     Call,
     Put,
