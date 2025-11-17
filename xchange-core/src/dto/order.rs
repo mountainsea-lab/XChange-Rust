@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderType {
     BID,      // Buying order (the trader is providing the counter currency)
@@ -62,5 +64,24 @@ impl OrderStatus {
                 | OrderStatus::PARTIALLY_FILLED
                 | OrderStatus::OPEN
         )
+    }
+}
+
+// Trait to represent the shared behavior of different orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Order {
+    LimitOrder(LimitOrder),
+    StopOrder(StopOrder),
+    MarketOrder(MarketOrder),
+}
+
+impl Order {
+    // Example method to retrieve the ID
+    pub fn id(&self) -> &str {
+        match self {
+            Order::LimitOrder(order) => &order.id,
+            Order::StopOrder(order) => &order.id,
+            Order::MarketOrder(order) => &order.id,
+        }
     }
 }
