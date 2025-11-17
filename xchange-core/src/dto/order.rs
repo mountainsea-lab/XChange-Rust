@@ -124,6 +124,7 @@ pub struct OrderBase {
     pub order_flags: HashSet<OrderFlag>,
     pub status: Option<OrderStatus>,
     pub cumulative_amount: Option<Decimal>,
+    pub remaining_amount: Option<Decimal>,
     pub average_price: Option<Decimal>,
     pub fee: Option<Decimal>,
     pub leverage: Option<String>,
@@ -150,6 +151,7 @@ impl OrderBase {
             order_flags: HashSet::new(), // Default to an empty set
             status,
             cumulative_amount: None,
+            remaining_amount: None,
             average_price: None,
             fee: None,
             leverage: None,
@@ -181,6 +183,7 @@ impl OrderBase {
             order_flags,
             status,
             cumulative_amount,
+            remaining_amount: None,
             average_price,
             fee,
             leverage,
@@ -207,6 +210,7 @@ impl OrderBase {
             order_flags: HashSet::new(),
             status,
             cumulative_amount: None,
+            remaining_amount: None,
             average_price: None,
             fee: None,
             leverage: None,
@@ -326,10 +330,6 @@ impl OrderBase {
     pub fn set_leverage(&mut self, lev: Option<String>) {
         self.leverage = lev;
     }
-
-    pub fn builder(type_: OrderType, instrument: InstrumentDTO) -> OrderBaseBuilder {
-        OrderBaseBuilder::new(type_, instrument)
-    }
 }
 
 impl fmt::Display for OrderBase {
@@ -386,129 +386,5 @@ impl Hash for OrderBase {
         self.instrument.hash(state);
         self.id.hash(state);
         self.timestamp.hash(state);
-    }
-}
-
-#[derive(Debug)]
-pub struct OrderBaseBuilder {
-    pub(crate) type_: OrderType,
-    pub(crate) original_amount: Option<Decimal>,
-    pub(crate) cumulative_amount: Option<Decimal>,
-    pub(crate) remaining_amount: Option<Decimal>,
-    pub(crate) instrument: InstrumentDTO,
-    pub(crate) id: String,
-    pub(crate) user_reference: Option<String>,
-    pub(crate) timestamp: Option<DateTime<Utc>>,
-    pub(crate) average_price: Option<Decimal>,
-    pub(crate) status: Option<OrderStatus>,
-    pub(crate) fee: Option<Decimal>,
-    pub(crate) leverage: Option<String>,
-    pub(crate) order_flags: HashSet<OrderFlag>,
-}
-
-impl OrderBaseBuilder {
-    pub fn new(type_: OrderType, instrument: InstrumentDTO) -> Self {
-        Self {
-            type_,
-            instrument,
-            original_amount: None,
-            cumulative_amount: None,
-            remaining_amount: None,
-            id: "".to_string(),
-            user_reference: None,
-            timestamp: None,
-            average_price: None,
-            status: None,
-            fee: None,
-            leverage: None,
-            order_flags: HashSet::new(),
-        }
-    }
-
-    pub fn order_type(&mut self, type_: OrderType) -> &mut Self {
-        self.type_ = type_;
-        self
-    }
-
-    pub fn original_amount(&mut self, amount: Decimal) -> &mut Self {
-        self.original_amount = Some(amount);
-        self
-    }
-
-    pub fn cumulative_amount(&mut self, amount: Decimal) -> &mut Self {
-        self.cumulative_amount = Some(amount);
-        self
-    }
-
-    pub fn remaining_amount(&mut self, amount: Decimal) -> &mut Self {
-        self.remaining_amount = Some(amount);
-        self
-    }
-
-    pub fn instrument(&mut self, instrument: InstrumentDTO) -> &mut Self {
-        self.instrument = instrument;
-        self
-    }
-
-    pub fn id(&mut self, id: impl Into<String>) -> &mut Self {
-        self.id = id.into();
-        self
-    }
-
-    pub fn user_reference(&mut self, user_ref: impl Into<String>) -> &mut Self {
-        self.user_reference = Some(user_ref.into());
-        self
-    }
-
-    pub fn timestamp(&mut self, ts: DateTime<Utc>) -> &mut Self {
-        self.timestamp = Some(ts);
-        self
-    }
-
-    pub fn average_price(&mut self, price: Decimal) -> &mut Self {
-        self.average_price = Some(price);
-        self
-    }
-
-    pub fn status(&mut self, status: OrderStatus) -> &mut Self {
-        self.status = Some(status);
-        self
-    }
-
-    pub fn fee(&mut self, fee: Decimal) -> &mut Self {
-        self.fee = Some(fee);
-        self
-    }
-
-    pub fn leverage(&mut self, leverage: impl Into<String>) -> &mut Self {
-        self.leverage = Some(leverage.into());
-        self
-    }
-
-    pub fn flags(&mut self, flags: HashSet<OrderFlag>) -> &mut Self {
-        self.order_flags.extend(flags);
-        self
-    }
-
-    pub fn flag(&mut self, flag: OrderFlag) -> &mut Self {
-        self.order_flags.insert(flag);
-        self
-    }
-
-    pub fn build(&self) -> OrderBase {
-        OrderBase {
-            type_: self.type_.clone(),
-            original_amount: self.original_amount,
-            cumulative_amount: self.cumulative_amount,
-            instrument: self.instrument.clone(),
-            id: self.id.clone(),
-            user_reference: self.user_reference.clone(),
-            timestamp: self.timestamp,
-            average_price: self.average_price,
-            status: self.status,
-            fee: self.fee,
-            leverage: self.leverage.clone(),
-            order_flags: self.order_flags.clone(),
-        }
     }
 }
