@@ -1,4 +1,4 @@
-use crate::instrument::Instrument;
+use crate::instrument::{Instrument, InstrumentDTO};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -6,8 +6,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FundingRate {
-    #[serde(skip_serializing)]
-    pub instrument: Arc<dyn Instrument>,
+    pub instrument: InstrumentDTO,
     pub funding_rate_1h: Decimal,
     pub funding_rate_8h: Decimal,
     pub funding_rate_date: DateTime<Utc>,
@@ -16,7 +15,7 @@ pub struct FundingRate {
 
 impl FundingRate {
     pub fn new(
-        instrument: Arc<dyn Instrument>,
+        instrument: InstrumentDTO,
         funding_rate_1h: Decimal,
         funding_rate_8h: Decimal,
         funding_rate_date: DateTime<Utc>,
@@ -45,7 +44,7 @@ impl FundingRate {
 }
 
 pub struct FundingRateBuilder {
-    instrument: Option<Arc<dyn Instrument>>,
+    instrument: Option<InstrumentDTO>,
     funding_rate_1h: Option<Decimal>,
     funding_rate_8h: Option<Decimal>,
     funding_rate_date: Option<DateTime<Utc>>,
@@ -63,7 +62,7 @@ impl FundingRateBuilder {
         }
     }
 
-    pub fn instrument(mut self, instrument: Arc<dyn Instrument>) -> Self {
+    pub fn instrument(mut self, instrument: InstrumentDTO) -> Self {
         self.instrument = Some(instrument);
         self
     }
