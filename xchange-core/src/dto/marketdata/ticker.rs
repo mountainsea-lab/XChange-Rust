@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ticker {
@@ -143,5 +144,36 @@ impl Ticker {
 
     pub fn get_percentage_change(&self) -> Option<Decimal> {
         self.percentage_change
+    }
+}
+
+impl fmt::Display for Ticker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Ticker [instrument={:?}, open={}, last={}, bid={}, ask={}, high={}, low={}, avg={}, volume={}, quoteVolume={}, timestamp={}, bidSize={}, askSize={}, percentageChange={}]",
+            self.instrument,
+            self.open,
+            self.last,
+            self.bid,
+            self.ask,
+            self.high,
+            self.low,
+            self.vwap,
+            self.volume
+                .as_ref()
+                .map_or("None".to_string(), |v| v.to_string()),
+            self.quote_volume
+                .as_ref()
+                .map_or("None".to_string(), |v| v.to_string()),
+            self.timestamp
+                .as_ref()
+                .map_or("None".to_string(), |t| t.to_string()),
+            self.bid_size,
+            self.ask_size,
+            self.percentage_change
+                .as_ref()
+                .map_or("None".to_string(), |p| p.to_string())
+        )
     }
 }
