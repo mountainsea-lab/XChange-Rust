@@ -1,2 +1,3 @@
 pub mod limit_order;
-mod market_order;
+pub mod market_order;
+pub mod stop_order;
