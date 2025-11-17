@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 /// Data object representing a CandleStick
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CandleStick {
     pub open: Decimal,
     pub last: Decimal,
