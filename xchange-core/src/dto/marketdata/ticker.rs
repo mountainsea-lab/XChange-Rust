@@ -4,6 +4,7 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ticker {
@@ -175,5 +176,196 @@ impl fmt::Display for Ticker {
                 .as_ref()
                 .map_or("None".to_string(), |p| p.to_string())
         )
+    }
+}
+
+#[derive(Default)]
+pub struct TickerBuilder {
+    instrument: Option<InstrumentDTO>,
+    open: Option<Decimal>,
+    last: Option<Decimal>,
+    bid: Option<Decimal>,
+    ask: Option<Decimal>,
+    high: Option<Decimal>,
+    low: Option<Decimal>,
+    vwap: Option<Decimal>,
+    volume: Option<Decimal>,
+    quote_volume: Option<Decimal>,
+    timestamp: Option<DateTime<Utc>>,
+    bid_size: Option<Decimal>,
+    ask_size: Option<Decimal>,
+    percentage_change: Option<Decimal>,
+    is_built: bool,
+}
+
+impl TickerBuilder {
+    // Builder method to set the instrument
+    pub fn instrument(mut self, instrument: InstrumentDTO) -> Self {
+        self.instrument = Some(instrument);
+        self
+    }
+
+    // Builder method to set the open value
+    pub fn open(mut self, open: Decimal) -> Self {
+        self.open = Some(open);
+        self
+    }
+
+    // Builder method to set the last value
+    pub fn last(mut self, last: Decimal) -> Self {
+        self.last = Some(last);
+        self
+    }
+
+    // Builder method to set the bid value
+    pub fn bid(mut self, bid: Decimal) -> Self {
+        self.bid = Some(bid);
+        self
+    }
+
+    // Builder method to set the ask value
+    pub fn ask(mut self, ask: Decimal) -> Self {
+        self.ask = Some(ask);
+        self
+    }
+
+    // Builder method to set the high value
+    pub fn high(mut self, high: Decimal) -> Self {
+        self.high = Some(high);
+        self
+    }
+
+    // Builder method to set the low value
+    pub fn low(mut self, low: Decimal) -> Self {
+        self.low = Some(low);
+        self
+    }
+
+    // Builder method to set the vwap value
+    pub fn vwap(mut self, vwap: Decimal) -> Self {
+        self.vwap = Some(vwap);
+        self
+    }
+
+    // Builder method to set the volume value
+    pub fn volume(mut self, volume: Decimal) -> Self {
+        self.volume = Some(volume);
+        self
+    }
+
+    // Builder method to set the quote volume value
+    pub fn quote_volume(mut self, quote_volume: Decimal) -> Self {
+        self.quote_volume = Some(quote_volume);
+        self
+    }
+
+    // Builder method to set the timestamp value
+    pub fn timestamp(mut self, timestamp: DateTime<Utc>) -> Self {
+        self.timestamp = Some(timestamp);
+        self
+    }
+
+    // Builder method to set the bid size
+    pub fn bid_size(mut self, bid_size: Decimal) -> Self {
+        self.bid_size = Some(bid_size);
+        self
+    }
+
+    // Builder method to set the ask size
+    pub fn ask_size(mut self, ask_size: Decimal) -> Self {
+        self.ask_size = Some(ask_size);
+        self
+    }
+
+    // Builder method to set the percentage change
+    pub fn percentage_change(mut self, percentage_change: Decimal) -> Self {
+        self.percentage_change = Some(percentage_change);
+        self
+    }
+
+    // Final method to build the Ticker instance
+    pub fn build(mut self) -> Result<Ticker, String> {
+        if self.is_built {
+            return Err("The entity has already been built".to_string());
+        }
+
+        // Ensure all required fields are set
+        let instrument = self.instrument.ok_or("Instrument is required")?;
+        let open = self.open.ok_or("Open value is required")?;
+        let last = self.last.ok_or("Last value is required")?;
+        let bid = self.bid.ok_or("Bid value is required")?;
+        let ask = self.ask.ok_or("Ask value is required")?;
+        let high = self.high.ok_or("High value is required")?;
+        let low = self.low.ok_or("Low value is required")?;
+        let vwap = self.vwap.ok_or("VWAP value is required")?;
+        let volume = self.volume;
+        let quote_volume = self.quote_volume;
+        let timestamp = self.timestamp;
+        let bid_size = self.bid_size.ok_or("Bid size is required")?;
+        let ask_size = self.ask_size.ok_or("Ask size is required")?;
+        let percentage_change = self.percentage_change;
+
+        // After validation, return the Ticker instance
+        let ticker = Ticker {
+            instrument,
+            open,
+            last,
+            bid,
+            ask,
+            high,
+            low,
+            vwap,
+            volume,
+            quote_volume,
+            timestamp,
+            bid_size,
+            ask_size,
+            percentage_change,
+        };
+
+        // Mark the builder as built
+        self.is_built = true;
+
+        Ok(ticker)
+    }
+}
+
+impl PartialEq for Ticker {
+    fn eq(&self, other: &Self) -> bool {
+        self.instrument == other.instrument
+            && self.open == other.open
+            && self.last == other.last
+            && self.bid == other.bid
+            && self.ask == other.ask
+            && self.high == other.high
+            && self.low == other.low
+            && self.vwap == other.vwap
+            && self.volume == other.volume
+            && self.quote_volume == other.quote_volume
+            && self.timestamp == other.timestamp
+            && self.bid_size == other.bid_size
+            && self.ask_size == other.ask_size
+            && self.percentage_change == other.percentage_change
+    }
+}
+
+impl Eq for Ticker {}
+
+impl Hash for Ticker {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.instrument.hash(state);
+        self.open.hash(state);
+        self.last.hash(state);
+        self.bid.hash(state);
+        self.ask.hash(state);
+        self.high.hash(state);
+        self.low.hash(state);
+        self.vwap.hash(state);
+        self.volume.hash(state);
+        self.quote_volume.hash(state);
+        self.timestamp.hash(state);
+        self.bid_size.hash(state);
+        self.ask_size.hash(state);
+        self.percentage_change.hash(state);
     }
 }

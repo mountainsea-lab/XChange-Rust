@@ -58,7 +58,7 @@ impl Instrument for InstrumentKind {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash)]
 pub enum InstrumentDTO {
     Spot {
         base: String,
