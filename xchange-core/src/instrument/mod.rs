@@ -131,3 +131,30 @@ impl From<InstrumentKind> for InstrumentDTO {
         }
     }
 }
+
+impl InstrumentDTO {
+    // Deprecating the `get_currency_pair` method
+    #[deprecated]
+    pub fn get_currency_pair(&self) -> Option<InstrumentDTO> {
+        match self {
+            InstrumentDTO::Spot { base, counter } => Some(InstrumentDTO::Spot {
+                base: base.clone(),
+                counter: counter.clone(),
+            }),
+            InstrumentDTO::Futures { base, counter, .. } => Some(InstrumentDTO::Futures {
+                base: base.clone(),
+                counter: counter.clone(),
+                prompt: None,
+            }),
+            InstrumentDTO::Options { base, counter, .. } => Some(InstrumentDTO::Options {
+                base: base.clone(),
+                counter: counter.clone(),
+                strike: Decimal::ZERO,
+                expire_date: NaiveDate::from_ymd_opt(2023, 1, 1)?,
+                option_type: OptionType::Call,
+            }),
+            // Other cases
+            _ => None,
+        }
+    }
+}
