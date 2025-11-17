@@ -389,20 +389,21 @@ impl Hash for OrderBase {
     }
 }
 
+#[derive(Debug)]
 pub struct OrderBaseBuilder {
-    type_: OrderType,
-    original_amount: Option<Decimal>,
-    cumulative_amount: Option<Decimal>,
-    remaining_amount: Option<Decimal>,
-    instrument: InstrumentDTO,
-    id: String,
-    user_reference: Option<String>,
-    timestamp: Option<DateTime<Utc>>,
-    average_price: Option<Decimal>,
-    status: Option<OrderStatus>,
-    fee: Option<Decimal>,
-    leverage: Option<String>,
-    order_flags: HashSet<OrderFlag>,
+    pub(crate) type_: OrderType,
+    pub(crate) original_amount: Option<Decimal>,
+    pub(crate) cumulative_amount: Option<Decimal>,
+    pub(crate) remaining_amount: Option<Decimal>,
+    pub(crate) instrument: InstrumentDTO,
+    pub(crate) id: String,
+    pub(crate) user_reference: Option<String>,
+    pub(crate) timestamp: Option<DateTime<Utc>>,
+    pub(crate) average_price: Option<Decimal>,
+    pub(crate) status: Option<OrderStatus>,
+    pub(crate) fee: Option<Decimal>,
+    pub(crate) leverage: Option<String>,
+    pub(crate) order_flags: HashSet<OrderFlag>,
 }
 
 impl OrderBaseBuilder {
