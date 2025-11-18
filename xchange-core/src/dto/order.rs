@@ -25,6 +25,14 @@ impl OrderType {
             OrderType::ExitBid => Some(OrderType::ExitAsk),
         }
     }
+
+    pub fn is_ask(&self) -> bool {
+        matches!(self, OrderType::Ask | OrderType::ExitAsk)
+    }
+
+    pub fn is_bid(&self) -> bool {
+        matches!(self, OrderType::Bid | OrderType::ExitBid)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

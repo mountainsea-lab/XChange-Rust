@@ -16,3 +16,4 @@ chrono = {workspace = true, features = ["serde"]  }
 rust_decimal = {workspace = true }
 log = {workspace = true }
 num-bigint = {workspace = true }
+parking_lot = {workspace = true }

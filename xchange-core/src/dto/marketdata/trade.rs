@@ -3,7 +3,6 @@ use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 
 /// Data object representing a Trade
 #[derive(Debug, Clone, Serialize, Deserialize)]

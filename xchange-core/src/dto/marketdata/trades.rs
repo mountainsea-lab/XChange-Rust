@@ -43,6 +43,7 @@ impl TradeSortType {
     }
 }
 
+/// DTO representing a collection of trades
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trades {
     pub trades: Vec<Trade>, // A vector to hold the collection of trades
