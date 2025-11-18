@@ -227,4 +227,16 @@ impl OrderBook {
             _ => true,
         }
     }
+
+    /// Replace the timestamp if the provided date is `Some` and in the future.
+    ///
+    /// # TODO
+    /// Should this raise an error if the order timestamp is in the past?
+    fn update_date(&mut self, update_date: Option<DateTime<Utc>>) {
+        if let Some(update_ts) = update_date {
+            if self.timestamp.map_or(true, |current| update_ts > current) {
+                self.timestamp = Some(update_ts);
+            }
+        }
+    }
 }
