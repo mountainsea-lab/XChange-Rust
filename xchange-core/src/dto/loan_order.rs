@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 /// A data structure representing an order for a loan.
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]

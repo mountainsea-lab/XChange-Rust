@@ -1,11 +1,12 @@
 use crate::dto::order::OrderType;
-use crate::instrument::{InstrumentDTO, InstrumentKind};
+use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 
 /// Data object representing a Trade
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trade {
     /// Did this trade result from the execution of a bid or an ask?
     pub order_type: OrderType, // `type` is a reserved keyword, so we use `order_type`
