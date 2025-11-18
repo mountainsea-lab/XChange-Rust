@@ -204,4 +204,27 @@ impl OrderBook {
             }
         }
     }
+
+    /// Returns true if we need to run binary search again.
+    fn recheck_idx(limit_orders: &[LimitOrder], limit_order: &LimitOrder, idx: isize) -> bool {
+        match idx {
+            0 => {
+                if !limit_orders.is_empty() {
+                    // If the first order is not equal, need to recheck
+                    limit_orders[0].cmp(limit_order) != std::cmp::Ordering::Equal
+                } else {
+                    true
+                }
+            }
+            -1 => {
+                if limit_orders.is_empty() {
+                    false
+                } else {
+                    // If first order <= limit_order, need to recheck
+                    limit_orders[0].cmp(limit_order) != std::cmp::Ordering::Greater
+                }
+            }
+            _ => true,
+        }
+    }
 }
