@@ -7,3 +7,4 @@ mod order_book_update;
 mod ticker;
 mod trade;
 mod trades;
+mod loan_order_book;
