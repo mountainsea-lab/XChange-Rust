@@ -2,9 +2,11 @@ use crate::dto::order::OrderType;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
 /// A data structure representing an order for a loan.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct LoanOrder {
     /// Order type (e.g., Bid or Ask)
     pub order_type: OrderType,
@@ -54,5 +56,20 @@ impl LoanOrder {
             id,
             timestamp,
         }
+    }
+}
+
+impl fmt::Display for LoanOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "LoanOrder [type={:?}, currency={}, originalAmount={}, dayPeriod={}, id={}, timestamp={:?}]",
+            self.order_type,
+            self.currency,
+            self.original_amount,
+            self.day_period,
+            self.id,
+            self.timestamp
+        )
     }
 }
