@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 enum Intention {
@@ -73,5 +74,32 @@ impl StopOrder {
             intention,
             trail_value,
         }
+    }
+
+    pub fn stop_price(&self) -> &Decimal {
+        &self.stop_price
+    }
+
+    pub fn limit_price(&self) -> Option<&Decimal> {
+        self.limit_price.as_ref()
+    }
+
+    pub fn intention(&self) -> Option<&Intention> {
+        self.intention.as_ref()
+    }
+
+    pub fn trail_value(&self) -> Option<&Decimal> {
+        self.trail_value.as_ref()
+    }
+}
+
+// Implementing the `fmt::Display` trait for user-friendly string representation
+impl fmt::Display for StopOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "StopOrder {{ stop_price: {}, limit_price: {:?}, intention: {:?}, trail_value: {:?} }}",
+            self.stop_price, self.limit_price, self.intention, self.trail_value
+        )
     }
 }
