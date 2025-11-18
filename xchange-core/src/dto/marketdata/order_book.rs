@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -239,4 +240,78 @@ impl OrderBook {
             }
         }
     }
+
+    /// Compare only the orders, ignoring the timestamp.
+    pub fn orders_equal(&self, other: &Self) -> bool {
+        self.bids == other.bids && self.asks == other.asks
+    }
 }
+
+// ---------------- Hash ----------------
+impl Hash for OrderBook {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut hash: i32 = 17;
+
+        // timestamp hash
+        let ts_hash = match self.timestamp {
+            Some(ts) => {
+                let nanos = ts.timestamp_nanos_opt().unwrap_or(0);
+                (nanos ^ (nanos >> 32)) as i32
+            }
+            None => 0,
+        };
+        hash = 31i32.wrapping_mul(hash).wrapping_add(ts_hash);
+
+        // bids
+        for bid in &self.bids {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            bid.hash(&mut hasher);
+            let bid_hash = hasher.finish() as i32;
+            hash = 31i32.wrapping_mul(hash).wrapping_add(bid_hash);
+        }
+
+        // asks
+        for ask in &self.asks {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            ask.hash(&mut hasher);
+            let ask_hash = hasher.finish() as i32;
+            hash = 31i32.wrapping_mul(hash).wrapping_add(ask_hash);
+        }
+
+        state.write_i32(hash);
+    }
+}
+
+// ---------------- PartialEq / Eq ----------------
+impl PartialEq for OrderBook {
+    fn eq(&self, other: &Self) -> bool {
+        // compare timestamp
+        if self.timestamp != other.timestamp {
+            return false;
+        }
+
+        // compare bids
+        if self.bids.len() != other.bids.len() {
+            return false;
+        }
+        for (a, b) in self.bids.iter().zip(other.bids.iter()) {
+            if a != b {
+                return false;
+            }
+        }
+
+        // compare asks
+        if self.asks.len() != other.asks.len() {
+            return false;
+        }
+        for (a, b) in self.asks.iter().zip(other.asks.iter()) {
+            if a != b {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+impl Eq for OrderBook {}
