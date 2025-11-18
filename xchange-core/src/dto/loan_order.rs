@@ -24,3 +24,35 @@ pub struct LoanOrder {
     /// The timestamp of the order according to the exchange's server, None if not provided
     pub timestamp: Option<DateTime<Utc>>,
 }
+
+impl LoanOrder {
+    /// Constructor for creating a new LoanOrder.
+    ///
+    /// # Parameters
+    /// - `order_type`: The type of order (Bid or Ask).
+    /// - `currency`: The currency of the loan.
+    /// - `original_amount`: The amount to be ordered or that was ordered.
+    /// - `day_period`: Duration of the loan in days.
+    /// - `id`: A unique identifier for the order.
+    /// - `timestamp`: The timestamp of the order, `None` if not provided.
+    ///
+    /// # Returns
+    /// A new instance of `LoanOrder`.
+    pub fn new(
+        order_type: OrderType,
+        currency: String,
+        original_amount: Decimal,
+        day_period: i32,
+        id: String,
+        timestamp: Option<DateTime<Utc>>,
+    ) -> Self {
+        LoanOrder {
+            order_type,
+            currency,
+            original_amount,
+            day_period,
+            id,
+            timestamp,
+        }
+    }
+}
