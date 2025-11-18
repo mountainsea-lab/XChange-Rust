@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -315,3 +316,13 @@ impl PartialEq for OrderBook {
 }
 
 impl Eq for OrderBook {}
+
+impl fmt::Display for OrderBook {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "OrderBook [timestamp: {:?}, asks: {:?}, bids: {:?}]",
+            self.timestamp, self.asks, self.bids
+        )
+    }
+}
