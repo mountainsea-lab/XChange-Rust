@@ -305,7 +305,7 @@ impl LimitOrderBuilder {
             self.order_base.remaining_amount,
             self.order_base.cumulative_amount,
         ) {
-            (Some(orig), Some(rem), _) => Some(rem),
+            (Some(_orig), Some(rem), _) => Some(rem),
             (Some(orig), None, Some(cum)) => Some(orig - cum),
             (Some(orig), None, None) => Some(orig),
             _ => None,

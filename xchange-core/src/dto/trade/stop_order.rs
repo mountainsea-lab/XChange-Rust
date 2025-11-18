@@ -3,10 +3,12 @@ use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 enum Intention {
     StopLoss,
     TakeProfit,
@@ -101,5 +103,61 @@ impl fmt::Display for StopOrder {
             "StopOrder {{ stop_price: {}, limit_price: {:?}, intention: {:?}, trail_value: {:?} }}",
             self.stop_price, self.limit_price, self.intention, self.trail_value
         )
+    }
+}
+
+// Implementing PartialEq for equality comparison
+impl PartialEq for StopOrder {
+    fn eq(&self, other: &Self) -> bool {
+        self.base == other.base
+            && self.stop_price == other.stop_price
+            && self.limit_price == other.limit_price
+            && self.intention == other.intention
+            && self.trail_value == other.trail_value
+    }
+}
+
+impl Eq for StopOrder {}
+
+// Implementing Hash for StopOrder
+impl Hash for StopOrder {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.base.hash(state);
+        self.stop_price.hash(state);
+        self.limit_price.hash(state);
+        self.intention.hash(state);
+        self.trail_value.hash(state);
+    }
+}
+
+// Implementing Ord and PartialOrd for custom comparison logic
+impl Ord for StopOrder {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Compare the types (BID < ASK)
+        if self.base.type_ != other.base.type_ {
+            return if self.base.type_ == OrderType::Bid {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            };
+        }
+
+        // Compare the stopPrice (lower stopPrice comes first for BID, higher comes first for ASK)
+        let stop_price_cmp = self.stop_price.cmp(&other.stop_price);
+        if stop_price_cmp != Ordering::Equal {
+            return if self.base.type_ == OrderType::Bid {
+                stop_price_cmp
+            } else {
+                stop_price_cmp.reverse()
+            };
+        }
+        // Compare the intention (StopLoss < TakeProfit for both types)
+        self.intention.cmp(&other.intention)
+    }
+}
+
+impl PartialOrd for StopOrder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
