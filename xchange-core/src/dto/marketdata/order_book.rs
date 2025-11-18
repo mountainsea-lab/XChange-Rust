@@ -1,3 +1,4 @@
+use crate::dto::marketdata::order_book_update::OrderBookUpdate;
 use crate::dto::order::OrderType;
 use crate::dto::trade::limit_order::LimitOrder;
 use chrono::{DateTime, Utc};
@@ -134,8 +135,8 @@ impl OrderBook {
     /// # Arguments
     ///
     /// * `limit_order` - The new `LimitOrder` to insert or update in the order book.
-    pub fn update(&mut self, limit_order: LimitOrder) {
-        // 先拿写锁
+    pub fn update_with_limit_order(&mut self, limit_order: LimitOrder) {
+        /// Acquire a write lock to ensure thread-safe access while updating the order book.
         let _guard = self.lock.write();
 
         // 取出对应的 orders 列表
@@ -146,22 +147,57 @@ impl OrderBook {
             OrderType::Bid | OrderType::ExitBid => &mut self.bids,
         };
 
-        // 二分查找
+        /// Perform a binary search on the orders to determine the correct insertion index.
         let mut idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
 
-        // 找到匹配订单就删除
+        /// Remove the existing order if it matches the new limit order.
         if idx < orders.len() && orders.get(idx).map(|o| o == &limit_order).unwrap_or(false) {
             orders.remove(idx);
         }
 
-        // 插入新的 limit_order（剩余数量非零）
+        /// Insert the new `LimitOrder` into the orders if its remaining amount is non-zero.
         if let Some(remaining) = limit_order.order_base.original_amount {
             if remaining != Decimal::ZERO {
                 orders.insert(idx, limit_order.clone());
             }
         }
 
-        // 更新 orderbook timestamp（只向前更新）
+        /// Update the order book timestamp, ensuring it only moves forward if the new timestamp is later.
+        if let Some(ts) = limit_order.order_base.timestamp {
+            if self.timestamp.map_or(true, |current| ts > current) {
+                self.timestamp = Some(ts);
+            }
+        }
+    }
+
+    /// Given an `OrderBookUpdate`, replace a matching limit order in the order book if found,
+    /// or insert a new one if not. The order book timestamp will be updated if the update timestamp
+    /// is later than the current.
+    pub fn update_with_order_book(&mut self, order_book_update: OrderBookUpdate) {
+        /// Acquire a write lock to ensure thread-safe access while updating the order book.
+        let _guard = self.lock.write();
+
+        let limit_order = order_book_update.limit_order;
+        let orders = match limit_order.order_base.type_ {
+            OrderType::Ask | OrderType::ExitAsk => &mut self.asks,
+            OrderType::Bid | OrderType::ExitBid => &mut self.bids,
+        };
+
+        /// Perform a binary search on the orders to determine the correct insertion index.
+        let mut idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
+
+        ///  Remove the existing order if it matches the new limit order.
+        if idx < orders.len() && orders.get(idx).map(|o| o == &limit_order).unwrap_or(false) {
+            orders.remove(idx);
+        }
+
+        /// If the total volume is non-zero, insert a new `LimitOrder` where the amount is replaced by `total_volume`.
+        if order_book_update.total_volume != Decimal::ZERO {
+            let updated_order = Self::with_amount(&limit_order, order_book_update.total_volume);
+            orders.insert(idx, updated_order);
+        }
+
+        /// Update the `OrderBook` timestamp to the new value if it is later than the current one.
         if let Some(ts) = limit_order.order_base.timestamp {
             if self.timestamp.map_or(true, |current| ts > current) {
                 self.timestamp = Some(ts);
