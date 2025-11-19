@@ -19,10 +19,10 @@ enum Intention {
 ///   <p>A stop order lets you set a minimum or maximum price before your trade will be treated by the
 ///   exchange as a {@link MarketOrder} unless a limit price is also set. There is no guarantee that
 ///   your conditions will be met on the exchange, so your order may not be executed.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StopOrder {
     // Including OrderBase as a field
-    pub base: OrderBase,
+    pub order_base: OrderBase,
 
     // Stop price is always required
     pub stop_price: Decimal,
@@ -56,7 +56,7 @@ impl StopOrder {
         timestamp: Option<DateTime<Utc>>,
     ) -> Self {
         StopOrder {
-            base: OrderBase {
+            order_base: OrderBase {
                 type_: type_,
                 original_amount,
                 instrument,
@@ -109,7 +109,7 @@ impl fmt::Display for StopOrder {
 // Implementing PartialEq for equality comparison
 impl PartialEq for StopOrder {
     fn eq(&self, other: &Self) -> bool {
-        self.base == other.base
+        self.order_base == other.order_base
             && self.stop_price == other.stop_price
             && self.limit_price == other.limit_price
             && self.intention == other.intention
@@ -122,7 +122,7 @@ impl Eq for StopOrder {}
 // Implementing Hash for StopOrder
 impl Hash for StopOrder {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.base.hash(state);
+        self.order_base.hash(state);
         self.stop_price.hash(state);
         self.limit_price.hash(state);
         self.intention.hash(state);
@@ -134,8 +134,8 @@ impl Hash for StopOrder {
 impl Ord for StopOrder {
     fn cmp(&self, other: &Self) -> Ordering {
         // Compare the types (BID < ASK)
-        if self.base.type_ != other.base.type_ {
-            return if self.base.type_ == OrderType::Bid {
+        if self.order_base.type_ != other.order_base.type_ {
+            return if self.order_base.type_ == OrderType::Bid {
                 Ordering::Less
             } else {
                 Ordering::Greater
@@ -145,7 +145,7 @@ impl Ord for StopOrder {
         // Compare the stopPrice (lower stopPrice comes first for BID, higher comes first for ASK)
         let stop_price_cmp = self.stop_price.cmp(&other.stop_price);
         if stop_price_cmp != Ordering::Equal {
-            return if self.base.type_ == OrderType::Bid {
+            return if self.order_base.type_ == OrderType::Bid {
                 stop_price_cmp
             } else {
                 stop_price_cmp.reverse()

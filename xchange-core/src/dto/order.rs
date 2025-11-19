@@ -1,4 +1,6 @@
 use crate::dto::trade::limit_order::LimitOrder;
+use crate::dto::trade::market_order::MarketOrder;
+use crate::dto::trade::stop_order::StopOrder;
 use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -105,8 +107,8 @@ impl OrderFlag {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Order {
     LimitOrder(LimitOrder),
-    // StopOrder(StopOrder),
-    // MarketOrder(MarketOrder),
+    StopOrder(StopOrder),
+    MarketOrder(MarketOrder),
 }
 
 impl Order {
@@ -114,8 +116,8 @@ impl Order {
     pub fn id(&self) -> &str {
         match self {
             Order::LimitOrder(order) => &order.order_base.id,
-            // Order::StopOrder(order) => &order.order_base.id,
-            // Order::MarketOrder(order) => &order.order_base.id,
+            Order::StopOrder(order) => &order.order_base.id,
+            Order::MarketOrder(order) => &order.order_base.id,
         }
     }
 }
