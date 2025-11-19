@@ -9,7 +9,7 @@ use std::hash::{Hash, Hasher};
 /// Represents a fixed rate loan order with a specified rate of return.
 /// This struct is part of a loan management system where fixed rate loans
 /// are offered with a defined rate for a specific period.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FixedRateLoanOrder {
     /// The base loan order, assumed to be a part of the system's structure.
     /// Additional fields from the LoanOrder struct would go here.
