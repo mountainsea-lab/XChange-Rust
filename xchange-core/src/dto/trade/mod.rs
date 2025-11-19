@@ -5,3 +5,4 @@ pub mod market_order;
 mod open_loan_orders;
 mod open_orders;
 pub mod stop_order;
+mod user_trade;

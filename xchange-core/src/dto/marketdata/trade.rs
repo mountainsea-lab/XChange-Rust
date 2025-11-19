@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// Data object representing a Trade
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Trade {
     /// Did this trade result from the execution of a bid or an ask?
     pub order_type: OrderType, // `type` is a reserved keyword, so we use `order_type`
