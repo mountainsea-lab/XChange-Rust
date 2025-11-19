@@ -53,6 +53,16 @@ pub struct Trades {
 }
 
 impl Trades {
+    // Constructor that defaults to SortByID
+    pub fn new_with_default_sort(trades: Vec<Trade>) -> Self {
+        Self::new(trades, 0, TradeSortType::SortByID, None)
+    }
+
+    // Constructor with specified sort type
+    pub fn new_with_sort(trades: Vec<Trade>, trade_sort_type: TradeSortType) -> Self {
+        Self::new(trades, 0, trade_sort_type, None)
+    }
+
     pub fn new(
         trades: Vec<Trade>,
         last_id: i64,
