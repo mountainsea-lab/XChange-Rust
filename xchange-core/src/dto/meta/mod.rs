@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 mod currency_metadata;
 mod fee_tier;
+mod rate_limit;
 
 /// Represents the health status of a wallet on the exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
