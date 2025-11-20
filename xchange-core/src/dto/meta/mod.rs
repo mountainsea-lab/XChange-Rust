@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 mod currency_metadata;
+mod exchange_metadata;
 mod fee_tier;
 mod instrument_metadata;
 mod rate_limit;
