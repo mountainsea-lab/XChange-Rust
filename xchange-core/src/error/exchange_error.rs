@@ -29,3 +29,5 @@ define_exchange_error!(
     ExchangeSecurityError,
     "Wrong credentials or insufficient privileges"
 );
+
+define_exchange_error!(ExchangeUnavailableError, "Service unavailable");
