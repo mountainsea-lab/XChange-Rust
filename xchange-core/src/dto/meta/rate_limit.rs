@@ -1,5 +1,4 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use std::time::Duration;
 
 /// Describe a call rate limit as a number of calls per some time span.
 #[derive(Debug, Clone, Serialize, Deserialize)]

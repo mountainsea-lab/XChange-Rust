@@ -2,7 +2,7 @@ use crate::currency::currency::Currency;
 use crate::dto::meta::currency_metadata::CurrencyMetaData;
 use crate::dto::meta::instrument_metadata::InstrumentMetaData;
 use crate::dto::meta::rate_limit::RateLimit;
-use crate::instrument::{Instrument, InstrumentDTO};
+use crate::instrument::InstrumentDTO;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
