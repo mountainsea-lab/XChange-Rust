@@ -1,5 +1,4 @@
 mod exchange_error;
-mod exchange_security_exception;
 pub mod macros;
 
 use std::{error::Error, fmt};
