@@ -4,7 +4,9 @@ use std::{error::Error, fmt};
 use thiserror::Error;
 
 /// Trait for all custom, exchange-specific errors.
-pub trait ExchangeErrorDetail: fmt::Display + fmt::Debug + Send + Sync + 'static {
+/// All implementors are required to be Send + Sync + 'static.
+pub trait ExchangeErrorDetail: fmt::Debug + fmt::Display + Send + Sync + 'static {
+    /// Returns the underlying cause of this error, if any.
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }

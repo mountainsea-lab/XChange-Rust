@@ -96,7 +96,7 @@ impl MarketOrderBuilder {
     }
 
     pub fn build(&self) -> MarketOrder {
-        let mut base = self.order_base.clone();
+        let base = self.order_base.clone();
         MarketOrder { order_base: base }
     }
 }

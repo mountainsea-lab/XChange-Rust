@@ -1,26 +1,21 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, sync::Arc};
 
 use crate::error::{ExchangeError, ExchangeErrorDetail};
 
-/// Indicates that the cause of the error were wrong credentials or insufficient privileges.
-///
-/// This error is returned only when the exchange API does not provide detailed enough
-/// information to distinguish this case from other error types. When the API is capable of
-/// producing a more specific classification, `ExchangeError::Security(String)` should be used.
+/// Indicates wrong credentials or insufficient privileges.
 ///
 /// Mirrors Java's `ExchangeSecurityException`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExchangeSecurityError {
     /// Human-readable error description.
     pub message: String,
 
-    /// Optional underlying cause (equivalent to Java Throwable cause).
-    pub source: Option<Box<dyn Error  + Send + Sync + 'static>>,
-
+    /// Optional underlying cause (chainable error).
+    source: Option<Arc<dyn Error + Send + Sync + 'static>>,
 }
 
 impl ExchangeSecurityError {
-    /// Default message when no additional info is provided.
+    /// Default message
     pub const DEFAULT_MESSAGE: &'static str = "Wrong credentials or insufficient privileges";
 
     /// Equivalent to Java: new ExchangeSecurityException()
@@ -40,21 +35,24 @@ impl ExchangeSecurityError {
     }
 
     /// Equivalent to Java: new ExchangeSecurityException(Throwable cause)
-    pub fn with_source(cause: impl Error + Send + Sync + 'static) -> Self {
+    pub fn with_source<E>(cause: E) -> Self
+    where
+        E: Error + Send + Sync + 'static,
+    {
         Self {
             message: Self::DEFAULT_MESSAGE.to_string(),
-            source: Some(Box::new(cause)),
+            source: Some(Arc::new(cause)),
         }
     }
 
     /// Equivalent to Java: new ExchangeSecurityException(String message, Throwable cause)
-    pub fn with_message_and_source(
-        msg: impl Into<String>,
-        cause: impl Error + Send + Sync + 'static,
-    ) -> Self {
+    pub fn with_message_and_source<E>(msg: impl Into<String>, cause: E) -> Self
+    where
+        E: Error + Send + Sync + 'static,
+    {
         Self {
             message: msg.into(),
-            source: Some(Box::new(cause)),
+            source: Some(Arc::new(cause)),
         }
     }
 }
@@ -65,15 +63,19 @@ impl fmt::Display for ExchangeSecurityError {
     }
 }
 
+// Implement standard Error trait
 impl Error for ExchangeSecurityError {
-    fn source(&self) -> Option<&(dyn Error  + Send + Sync + 'static)> {
-        self.source.as_deref()
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.source
+            .as_ref()
+            .map(|e| e.as_ref() as &(dyn Error + 'static))
     }
-
 }
 
+// Implement custom ExchangeErrorDetail trait
 impl ExchangeErrorDetail for ExchangeSecurityError {}
 
+// Convert to generic ExchangeError
 impl From<ExchangeSecurityError> for ExchangeError {
     fn from(err: ExchangeSecurityError) -> Self {
         ExchangeError::Custom(Box::new(err))

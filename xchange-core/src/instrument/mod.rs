@@ -153,8 +153,6 @@ impl InstrumentDTO {
                 expire_date: NaiveDate::from_ymd_opt(2023, 1, 1)?,
                 option_type: OptionType::Call,
             }),
-            // Other cases
-            _ => None,
         }
     }
 }

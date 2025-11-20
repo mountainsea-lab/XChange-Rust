@@ -9,7 +9,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-enum Intention {
+pub enum Intention {
     StopLoss,
     TakeProfit,
 }

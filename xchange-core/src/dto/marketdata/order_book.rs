@@ -138,7 +138,7 @@ impl OrderBook {
     ///
     /// * `limit_order` - The new `LimitOrder` to insert or update in the order book.
     pub fn update_with_limit_order(&mut self, limit_order: LimitOrder) {
-        /// Acquire a write lock to ensure thread-safe access while updating the order book.
+        // Acquire a write lock to ensure thread-safe access while updating the order book.
         let _guard = self.lock.write();
 
         // 取出对应的 orders 列表
@@ -149,22 +149,22 @@ impl OrderBook {
             OrderType::Bid | OrderType::ExitBid => &mut self.bids,
         };
 
-        /// Perform a binary search on the orders to determine the correct insertion index.
-        let mut idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
+        // Perform a binary search on the orders to determine the correct insertion index.
+        let idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
 
-        /// Remove the existing order if it matches the new limit order.
+        // Remove the existing order if it matches the new limit order.
         if idx < orders.len() && orders.get(idx).map(|o| o == &limit_order).unwrap_or(false) {
             orders.remove(idx);
         }
 
-        /// Insert the new `LimitOrder` into the orders if its remaining amount is non-zero.
+        // Insert the new `LimitOrder` into the orders if its remaining amount is non-zero.
         if let Some(remaining) = limit_order.order_base.original_amount {
             if remaining != Decimal::ZERO {
                 orders.insert(idx, limit_order.clone());
             }
         }
 
-        /// Update the order book timestamp, ensuring it only moves forward if the new timestamp is later.
+        // Update the order book timestamp, ensuring it only moves forward if the new timestamp is later.
         if let Some(ts) = limit_order.order_base.timestamp {
             if self.timestamp.map_or(true, |current| ts > current) {
                 self.timestamp = Some(ts);
@@ -176,7 +176,7 @@ impl OrderBook {
     /// or insert a new one if not. The order book timestamp will be updated if the update timestamp
     /// is later than the current.
     pub fn update_with_order_book(&mut self, order_book_update: OrderBookUpdate) {
-        /// Acquire a write lock to ensure thread-safe access while updating the order book.
+        // Acquire a write lock to ensure thread-safe access while updating the order book.
         let _guard = self.lock.write();
 
         let limit_order = order_book_update.limit_order;
@@ -185,21 +185,21 @@ impl OrderBook {
             OrderType::Bid | OrderType::ExitBid => &mut self.bids,
         };
 
-        /// Perform a binary search on the orders to determine the correct insertion index.
-        let mut idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
+        // Perform a binary search on the orders to determine the correct insertion index.
+        let idx = orders.binary_search(&limit_order).unwrap_or_else(|i| i);
 
-        ///  Remove the existing order if it matches the new limit order.
+        //  Remove the existing order if it matches the new limit order.
         if idx < orders.len() && orders.get(idx).map(|o| o == &limit_order).unwrap_or(false) {
             orders.remove(idx);
         }
 
-        /// If the total volume is non-zero, insert a new `LimitOrder` where the amount is replaced by `total_volume`.
+        // If the total volume is non-zero, insert a new `LimitOrder` where the amount is replaced by `total_volume`.
         if order_book_update.total_volume != Decimal::ZERO {
             let updated_order = Self::with_amount(&limit_order, order_book_update.total_volume);
             orders.insert(idx, updated_order);
         }
 
-        /// Update the `OrderBook` timestamp to the new value if it is later than the current one.
+        // Update the `OrderBook` timestamp to the new value if it is later than the current one.
         if let Some(ts) = limit_order.order_base.timestamp {
             if self.timestamp.map_or(true, |current| ts > current) {
                 self.timestamp = Some(ts);
