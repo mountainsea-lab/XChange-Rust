@@ -61,9 +61,9 @@ macro_rules! define_exchange_error {
 
         impl crate::error::ExchangeErrorDetail for $name {}
 
-        impl From<$name> for crate::error::ExchangeError {
+        impl From<$name> for crate::error::exchange_error::ExchangeError {
             fn from(err: $name) -> Self {
-                crate::error::ExchangeError::Custom(Box::new(err))
+                crate::error::exchange_error::ExchangeError::Custom(Box::new(err))
             }
         }
     };
