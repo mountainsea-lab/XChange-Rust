@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-mod currency_metadata;
-mod exchange_metadata;
-mod fee_tier;
-mod instrument_metadata;
-mod rate_limit;
+pub mod currency_metadata;
+pub mod exchange_metadata;
+pub mod fee_tier;
+pub mod instrument_metadata;
+pub mod rate_limit;
 
 /// Represents the health status of a wallet on the exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
