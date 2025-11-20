@@ -1,5 +1,5 @@
 /// Exchange trait
-pub trait Exchange {
+pub trait Exchange: Send + Sync {
     const USE_SANDBOX: &'static str = "Use_Sandbox";
 
     type Spec;
@@ -11,4 +11,6 @@ pub trait Exchange {
     fn get_exchange_instruments(&self) -> Vec<Self::Instrument>;
     fn get_default_exchange_specification(&self) -> &Self::Spec;
     fn apply_specification(&mut self, spec: Self::Spec);
+
+    // fn remote_init(&mut self) -> Result<(), ExchangeException> { Ok(()) }
 }
