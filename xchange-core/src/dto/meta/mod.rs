@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// Represents the health status of a wallet on the exchange.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WalletHealth {
     /// You can deposit and withdraw funds from the exchange
     Online,
@@ -18,7 +20,7 @@ pub enum WalletHealth {
 }
 
 /// Represents the operational health status of an exchange.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExchangeHealth {
     /// Exchange is fully operational
     Online,

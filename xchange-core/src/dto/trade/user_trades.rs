@@ -1,6 +1,5 @@
 use crate::dto::marketdata::trade::Trade;
 use crate::dto::marketdata::trades::{TradeSortType, Trades};
-use crate::dto::order::OrderType;
 use crate::dto::trade::user_trade::UserTrade;
 use serde::{Deserialize, Serialize};
 use std::fmt;
