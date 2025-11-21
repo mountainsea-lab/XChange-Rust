@@ -1,10 +1,11 @@
+use crate::currency::currency::Currency;
 use crate::service::account::params::RequestDepositAddressParams;
 
 /// Default implementation of `RequestDepositAddressParams`.
 #[derive(Debug, Clone)]
 pub struct DefaultRequestDepositAddressParams {
     /// Currency for the deposit address
-    pub currency: String,
+    pub currency: Currency,
 
     /// Optional network (chain) for the deposit
     pub network: Option<String>,
@@ -18,9 +19,9 @@ pub struct DefaultRequestDepositAddressParams {
 
 impl DefaultRequestDepositAddressParams {
     /// Convenience method to create with currency and extra arguments
-    pub fn create(currency: impl Into<String>, args: &[impl AsRef<str>]) -> Self {
+    pub fn create(currency: Currency, args: &[impl AsRef<str>]) -> Self {
         Self {
-            currency: currency.into(),
+            currency,
             network: None,
             new_address: false,
             extra_arguments: args.iter().map(|s| s.as_ref().to_string()).collect(),
@@ -36,15 +37,15 @@ impl DefaultRequestDepositAddressParams {
 /// Builder for `DefaultRequestDepositAddressParams`
 #[derive(Debug, Default)]
 pub struct DefaultRequestDepositAddressParamsBuilder {
-    currency: Option<String>,
+    currency: Option<Currency>,
     network: Option<String>,
     new_address: bool,
     extra_arguments: Vec<String>,
 }
 
 impl DefaultRequestDepositAddressParamsBuilder {
-    pub fn currency(mut self, currency: impl Into<String>) -> Self {
-        self.currency = Some(currency.into());
+    pub fn currency(mut self, currency: Currency) -> Self {
+        self.currency = Some(currency);
         self
     }
 
@@ -74,7 +75,7 @@ impl DefaultRequestDepositAddressParamsBuilder {
 }
 
 impl RequestDepositAddressParams for DefaultRequestDepositAddressParams {
-    fn currency(&self) -> &str {
+    fn currency(&self) -> &Currency {
         &self.currency
     }
 
