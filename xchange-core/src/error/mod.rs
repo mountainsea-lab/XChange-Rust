@@ -2,7 +2,6 @@ pub mod exchange_error;
 pub mod macros;
 
 use std::{error::Error, fmt};
-use thiserror::Error;
 
 /// Trait for all custom, exchange-specific errors.
 /// All implementors are required to be Send + Sync + 'static.

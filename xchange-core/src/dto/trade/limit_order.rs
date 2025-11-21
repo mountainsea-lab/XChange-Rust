@@ -1,4 +1,4 @@
-use crate::dto::order::{Order, OrderBase, OrderFlag, OrderStatus, OrderType};
+use crate::dto::order::{OrderBase, OrderFlag, OrderStatus, OrderType};
 use crate::instrument::InstrumentDTO;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;

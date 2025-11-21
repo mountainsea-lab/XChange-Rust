@@ -97,26 +97,26 @@ pub trait TradeService: BaseService {
     ) -> Result<Vec<Order>, ExchangeError> {
         Err(NotAvailableFromExchangeError::with_message("order_by_query").into())
     }
+}
 
-    // ------------------ 静态辅助方法 ------------------
+// ------------------ 静态辅助方法 ------------------
 
-    /// 将 order_id 列表转换为 OrderQueryParams 对象 Vec
-    fn to_order_query_params(order_ids: &[&str]) -> Vec<Box<dyn OrderQueryParams>> {
-        order_ids
-            .iter()
-            .map(|id| {
-                Box::new(DefaultQueryOrderParam {
-                    order_id: id.to_string(),
-                }) as Box<dyn OrderQueryParams>
-            })
-            .collect()
-    }
+/// 将 order_id 列表转换为 OrderQueryParams 对象 Vec
+fn to_order_query_params(order_ids: &[&str]) -> Vec<Box<dyn OrderQueryParams>> {
+    order_ids
+        .iter()
+        .map(|id| {
+            Box::new(DefaultQueryOrderParam {
+                order_id: id.to_string(),
+            }) as Box<dyn OrderQueryParams>
+        })
+        .collect()
+}
 
-    /// 将 OrderQueryParams 对象转换为 order_id 列表
-    fn to_order_ids(order_query: &[Box<dyn OrderQueryParams>]) -> Vec<String> {
-        order_query
-            .iter()
-            .map(|param| param.order_id().to_string())
-            .collect()
-    }
+/// 将 OrderQueryParams 对象转换为 order_id 列表
+fn to_order_ids(order_query: &[Box<dyn OrderQueryParams>]) -> Vec<String> {
+    order_query
+        .iter()
+        .map(|param| param.order_id().to_string())
+        .collect()
 }
