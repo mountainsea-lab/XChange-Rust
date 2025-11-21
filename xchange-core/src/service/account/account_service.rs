@@ -7,6 +7,7 @@ use crate::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeEr
 use crate::instrument::InstrumentDTO;
 use crate::service::BaseService;
 use crate::service::account::params::RequestDepositAddressParams;
+use crate::service::trade::params::TradeHistoryParams;
 use std::collections::HashMap;
 
 /// AccountService inherits BaseService functionality.
@@ -62,22 +63,16 @@ pub trait AccountService: BaseService {
         self.request_deposit_address_data(params.currency().clone(), params.extra_arguments())
     }
 
-    // fn create_funding_history_params(&self) -> Result<TradeHistoryParams, ExchangeError> {
-    //     Err(NotYetImplementedForExchangeError::with_message(
-    //         "create_funding_history_params",
-    //     )
-    //         .into())
-    // }
-    //
-    // fn get_funding_history(
-    //     &self,
-    //     params: &TradeHistoryParams,
-    // ) -> Result<Vec<FundingRecord>, ExchangeError> {
-    //     Err(NotYetImplementedForExchangeError::with_message(
-    //         "get_funding_history",
-    //     )
-    //         .into())
-    // }
+    fn create_funding_history_params(&self) -> Result<Box<dyn TradeHistoryParams>, ExchangeError> {
+        Err(NotYetImplementedForExchangeError::with_message("create_funding_history_params").into())
+    }
+
+    fn get_funding_history(
+        &self,
+        params: &dyn TradeHistoryParams,
+    ) -> Result<Vec<FundingRecord>, ExchangeError> {
+        Err(NotYetImplementedForExchangeError::with_message("get_funding_history").into())
+    }
 
     fn dynamic_trading_fees_by_instrument(
         &self,

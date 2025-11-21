@@ -120,6 +120,30 @@ impl Order {
             Order::MarketOrder(order) => &order.order_base.id,
         }
     }
+
+    pub fn as_limit_order(&self) -> Option<&LimitOrder> {
+        if let Order::LimitOrder(lo) = self {
+            Some(lo)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_stop_order(&self) -> Option<&StopOrder> {
+        if let Order::StopOrder(so) = self {
+            Some(so)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_market_order(&self) -> Option<&MarketOrder> {
+        if let Order::MarketOrder(mo) = self {
+            Some(mo)
+        } else {
+            None
+        }
+    }
 }
 
 // Common struct to hold fields that are shared between all order types
