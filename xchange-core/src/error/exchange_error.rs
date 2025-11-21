@@ -3,26 +3,15 @@ use crate::define_exchange_error;
 use crate::error::ExchangeErrorDetail;
 use thiserror::Error;
 
+/// Core ExchangeError for all exchange-related errors
 #[derive(Debug, Error)]
 pub enum ExchangeError {
-    /// Generic plain message (lightweight)
+    /// Simple string message (lightweight)
     #[error("Exchange error: {0}")]
     Message(String),
 
-    /// Wrong credentials, missing permission, IP banned, etc.
-    #[error("Security error: {0}")]
-    Security(String),
-
-    /// Network issue, timeout, rate limit, etc.
-    #[error("Network error: {0}")]
-    Network(String),
-
-    /// Unsupported operation, invalid argument, etc.
-    #[error("Invalid request: {0}")]
-    Invalid(String),
-
-    /// Any custom exchange-specific error
-    #[error("Custom error: {0}")]
+    /// Any custom error implementing ExchangeErrorDetail
+    #[error("{0}")]
     Custom(Box<dyn ExchangeErrorDetail>),
 }
 
@@ -104,4 +93,23 @@ define_exchange_error!(
     "Invalid currency pair for this operation",
     currency_pair,
     CurrencyPair
+);
+
+define_exchange_error!(
+    NotYetImplementedForExchangeError,
+    "Feature not yet implemented for exchange."
+);
+
+define_exchange_error!(
+    NotAvailableFromExchangeError,
+    "Requested information or function from exchange is not available."
+);
+
+// Exception indicating that an order placed or verified was not valid.
+define_exchange_error!(OrderNotValidError, "Invalid order");
+
+// An exception indicating that the rate limit for making requests has been exceeded.
+define_exchange_error!(
+    RateLimitExceededError,
+    "Rate limit for making requests exceeded!"
 );
