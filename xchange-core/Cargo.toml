@@ -19,3 +19,5 @@ num-bigint = {workspace = true }
 parking_lot = {workspace = true }
 thiserror = {workspace = true }
 async-trait = {workspace = true }
+retry = {workspace = true }
+governor = {workspace = true }
