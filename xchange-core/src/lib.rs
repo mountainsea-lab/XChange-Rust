@@ -9,3 +9,4 @@ pub mod exchange_specification;
 pub mod instrument;
 pub mod service;
 pub mod utils;
+pub mod client;
