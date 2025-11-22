@@ -18,6 +18,7 @@ impl RetryConfig {
     }
 }
 
+use crate::client::client_config::ClientConfig;
 use tokio::time::{Instant, sleep};
 
 #[derive(Clone)]
@@ -55,4 +56,8 @@ impl RateLimiter {
             sleep(Duration::from_millis(10)).await;
         }
     }
+}
+
+pub trait ClientConfigCustomizer {
+    fn customize(&self, config: &mut ClientConfig);
 }
