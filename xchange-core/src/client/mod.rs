@@ -1,6 +1,7 @@
+pub mod client_config;
 pub mod resilience_registries;
 
-use std::time::{Duration};
+use std::time::Duration;
 
 /// RetryConfig + backoff small impl
 #[derive(Clone)]
@@ -17,7 +18,7 @@ impl RetryConfig {
     }
 }
 
-use tokio::time::{sleep, Instant};
+use tokio::time::{Instant, sleep};
 
 #[derive(Clone)]
 pub struct RateLimiter {

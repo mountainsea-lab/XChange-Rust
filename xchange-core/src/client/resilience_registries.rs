@@ -1,6 +1,6 @@
+use crate::client::{RateLimiter, RetryConfig};
 use std::collections::HashMap;
 use std::time::Duration;
-use crate::client::{RateLimiter, RetryConfig};
 
 pub struct ResilienceRegistries {
     pub retry_configs: HashMap<String, RetryConfig>,

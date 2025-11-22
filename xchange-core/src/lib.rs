@@ -1,5 +1,6 @@
 extern crate core;
 
+pub mod client;
 pub mod currency;
 pub mod derivative;
 pub mod dto;
@@ -9,4 +10,3 @@ pub mod exchange_specification;
 pub mod instrument;
 pub mod service;
 pub mod utils;
-pub mod client;
