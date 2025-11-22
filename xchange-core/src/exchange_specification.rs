@@ -1,4 +1,3 @@
-use crate::exchange::Exchange;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -40,7 +39,7 @@ impl ResilienceSpecification {
 }
 /// ExchangeSpecification with builder
 #[derive(Debug, Clone)]
-pub struct ExchangeSpecification<E: Exchange> {
+pub struct ExchangeSpecification {
     pub exchange_name: Option<String>,
     pub exchange_description: Option<String>,
     pub user_name: Option<String>,
@@ -60,11 +59,10 @@ pub struct ExchangeSpecification<E: Exchange> {
     pub meta_data_json_file_override: Option<String>,
     pub should_load_remote_meta_data: bool,
     pub exchange_specific_parameters: HashMap<String, Value>,
-    _marker: std::marker::PhantomData<E>,
 }
 
-impl<E: Exchange> ExchangeSpecification<E> {
-    pub fn builder() -> ExchangeSpecificationBuilder<E> {
+impl ExchangeSpecification {
+    pub fn builder() -> ExchangeSpecificationBuilder {
         ExchangeSpecificationBuilder::default()
     }
 
@@ -75,7 +73,7 @@ impl<E: Exchange> ExchangeSpecification<E> {
 
 /// Builder for ExchangeSpecification
 #[derive(Debug)]
-pub struct ExchangeSpecificationBuilder<E: Exchange> {
+pub struct ExchangeSpecificationBuilder {
     exchange_name: Option<String>,
     exchange_description: Option<String>,
     user_name: Option<String>,
@@ -95,10 +93,9 @@ pub struct ExchangeSpecificationBuilder<E: Exchange> {
     meta_data_json_file_override: Option<String>,
     should_load_remote_meta_data: Option<bool>,
     exchange_specific_parameters: HashMap<String, Value>,
-    _marker: std::marker::PhantomData<E>,
 }
 
-impl<E: Exchange> Default for ExchangeSpecificationBuilder<E> {
+impl Default for ExchangeSpecificationBuilder {
     fn default() -> Self {
         Self {
             exchange_name: None,
@@ -120,12 +117,11 @@ impl<E: Exchange> Default for ExchangeSpecificationBuilder<E> {
             meta_data_json_file_override: None,
             should_load_remote_meta_data: None,
             exchange_specific_parameters: HashMap::new(),
-            _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<E: Exchange> ExchangeSpecificationBuilder<E> {
+impl ExchangeSpecificationBuilder {
     pub fn exchange_name(mut self, name: impl Into<String>) -> Self {
         self.exchange_name = Some(name.into());
         self
@@ -216,7 +212,7 @@ impl<E: Exchange> ExchangeSpecificationBuilder<E> {
         self
     }
 
-    pub fn build(self) -> ExchangeSpecification<E> {
+    pub fn build(self) -> ExchangeSpecification {
         ExchangeSpecification {
             exchange_name: self.exchange_name,
             exchange_description: self.exchange_description,
@@ -237,7 +233,6 @@ impl<E: Exchange> ExchangeSpecificationBuilder<E> {
             meta_data_json_file_override: self.meta_data_json_file_override,
             should_load_remote_meta_data: self.should_load_remote_meta_data.unwrap_or(true),
             exchange_specific_parameters: self.exchange_specific_parameters,
-            _marker: std::marker::PhantomData,
         }
     }
 }

@@ -1,5 +1,5 @@
+use crate::BuildError;
 use crate::currency::currency::Currency;
-use crate::dto::BuildError;
 use crate::dto::marketdata::trade::Trade;
 use crate::dto::order::OrderType;
 use crate::instrument::{Instrument, InstrumentDTO, InstrumentKind};

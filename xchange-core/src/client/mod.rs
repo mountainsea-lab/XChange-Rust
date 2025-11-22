@@ -1,6 +1,9 @@
 pub mod client_config;
+mod exchange_rest_proxy_builder;
 pub mod resilience_registries;
 
+use async_trait::async_trait;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// RetryConfig + backoff small impl
@@ -60,4 +63,32 @@ impl RateLimiter {
 
 pub trait ClientConfigCustomizer {
     fn customize(&self, config: &mut ClientConfig);
+}
+
+pub trait Interceptor: Send + Sync {
+    fn intercept(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder;
+}
+
+#[async_trait]
+pub trait RestProxyFactory: Send + Sync {
+    async fn create_proxy(
+        &self,
+        base_url: String,
+        config: ClientConfig,
+        interceptors: Vec<Arc<dyn Interceptor>>,
+    ) -> Box<dyn std::any::Any + Send + Sync>;
+}
+
+pub struct DefaultProxyFactory;
+#[async_trait]
+impl RestProxyFactory for DefaultProxyFactory {
+    async fn create_proxy(
+        &self,
+        base_url: String,
+        config: ClientConfig,
+        interceptors: Vec<Arc<dyn Interceptor>>,
+    ) -> Box<dyn std::any::Any + Send + Sync> {
+        // core 不知道具体交易所，返回 Arc<dyn Any>
+        unimplemented!("交易所模块需要 downcast");
+    }
 }

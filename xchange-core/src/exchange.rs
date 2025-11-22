@@ -14,7 +14,7 @@ pub trait Exchange: Send + Sync {
     const USE_SANDBOX: &'static str = "Use_Sandbox";
 
     /// 获取 ExchangeSpecification
-    fn exchange_specification(&self) -> Box<ExchangeSpecification<Self>>
+    fn exchange_specification(&self) -> &ExchangeSpecification
     where
         Self: Sized;
 
@@ -25,12 +25,12 @@ pub trait Exchange: Send + Sync {
     fn exchange_instruments(&self) -> Vec<Box<dyn Instrument>>;
 
     /// 获取默认的 ExchangeSpecification
-    fn default_exchange_specification(&self) -> Box<ExchangeSpecification<Self>>
+    fn default_exchange_specification(&self) -> ExchangeSpecification
     where
         Self: Sized;
 
     /// 应用交易所特定的配置
-    fn apply_specification(&mut self, spec: ExchangeSpecification<Self>)
+    fn apply_specification(&mut self, spec: ExchangeSpecification)
     where
         Self: Sized;
 
