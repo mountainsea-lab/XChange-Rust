@@ -23,6 +23,5 @@ num-bigint = "0.4.6"
 parking_lot = "0.12.5"
 thiserror = "2.0.11"
 async-trait = "0.1.89"
-retry = "2.1.0"
-governor = "0.10.2"
+tokio = "1.44.0"
 xchange-core =  { path = "xchange-core" }
