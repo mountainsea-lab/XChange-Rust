@@ -1,4 +1,4 @@
-mod meta;
+pub mod meta;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
