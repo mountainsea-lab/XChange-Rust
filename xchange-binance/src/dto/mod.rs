@@ -1,6 +1,27 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use thiserror::Error;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExchangeType {
+    Spot,
+    Futures,
+    Inverse,
+    PortfolioMargin,
+}
+
+impl fmt::Display for ExchangeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            ExchangeType::Spot => "SPOT",
+            ExchangeType::Futures => "FUTURES",
+            ExchangeType::Inverse => "INVERSE",
+            ExchangeType::PortfolioMargin => "PORTFOLIO_MARGIN",
+        };
+        write!(f, "{}", s)
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum BinanceError {
