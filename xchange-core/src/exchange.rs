@@ -1,3 +1,4 @@
+use crate::client::resilience_registries::ResilienceRegistries;
 use crate::dto::meta::exchange_metadata::ExchangeMetaData;
 use crate::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeError};
 use crate::exchange_specification::ExchangeSpecification;
@@ -8,51 +9,31 @@ use crate::service::trade::trade_service::TradeService;
 use async_trait::async_trait;
 use std::sync::Arc;
 
-/// Exchange trait
 #[async_trait]
 pub trait Exchange: Send + Sync {
     const USE_SANDBOX: &'static str = "Use_Sandbox";
 
-    /// 获取 ExchangeSpecification
-    fn exchange_specification(&self) -> &ExchangeSpecification
-    where
-        Self: Sized;
+    fn exchange_specification(&self) -> &ExchangeSpecification;
 
-    /// 获取 ExchangeMetaData
     fn exchange_meta_data(&self) -> &ExchangeMetaData;
 
-    /// 获取所有交易对信息
-    fn exchange_instruments(&self) -> Vec<Box<dyn Instrument>>;
+    fn exchange_instruments(&self) -> Vec<Arc<dyn Instrument>>;
 
-    /// 获取默认的 ExchangeSpecification
-    fn default_exchange_specification(&self) -> ExchangeSpecification
-    where
-        Self: Sized;
+    fn default_exchange_specification(&self) -> ExchangeSpecification;
 
-    /// 应用交易所特定的配置
-    fn apply_specification(&mut self, spec: ExchangeSpecification)
-    where
-        Self: Sized;
+    fn apply_specification(&mut self, spec: ExchangeSpecification);
 
-    /// 获取市场数据服务
-    fn get_market_data_service(&self) -> Arc<Box<dyn MarketDataService>>;
+    fn get_market_data_service(&self) -> Arc<dyn MarketDataService>;
 
-    /// 获取交易服务
-    fn get_trade_service(&self) -> Arc<Box<dyn TradeService>>;
+    fn get_trade_service(&self) -> Arc<dyn TradeService>;
 
-    /// 获取账户服务
-    fn get_account_service(&self) -> Arc<Box<dyn AccountService>>;
+    fn get_account_service(&self) -> Arc<dyn AccountService>;
 
-    /// 获取 nonce 工厂
-    // fn get_nonce_factory(&self) -> Arc<dyn SynchronizedValueFactory<u64>>;
-
-    /// 远程初始化，提供默认实现
     async fn remote_init(&mut self) -> Result<(), ExchangeError> {
-        Ok(()) // 默认返回成功，子类可以重载
+        Ok(())
     }
 
-    /// 获取 resilience4j 注册表（用于重试策略、速率限制等）
-    async fn get_resilience_registries(&self) -> Result<String, ExchangeError> {
+    async fn get_resilience_registries(&self) -> Result<Arc<ResilienceRegistries>, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message(
             "Resilience features not implemented".to_string(),
         )
