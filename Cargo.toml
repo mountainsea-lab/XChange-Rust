@@ -26,3 +26,6 @@ async-trait = "0.1.89"
 tokio = "1.44.0"
 reqwest = "0.12.24"
 xchange-core =  { path = "xchange-core" }
+syn = "2.0.111"
+quote = "1.0.42"
+proc-macro2 = "1.0.103"

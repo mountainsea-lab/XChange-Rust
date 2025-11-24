@@ -21,3 +21,6 @@ thiserror = {workspace = true }
 async-trait = {workspace = true }
 tokio = {workspace = true, features = ["time", "sync"] }
 reqwest = {workspace = true, features = ["rustls-tls",'json']  }
+syn =  {workspace = true }
+quote =  {workspace = true }
+proc-macro2 =  {workspace = true }
