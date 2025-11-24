@@ -1,4 +1,5 @@
-use crate::TimeUnit;
+use crate::{TimeUnit, ValueFactory};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 基于当前时间且保证单调递增的 nonce 生成器
@@ -15,14 +16,32 @@ impl TimeNonce {
         }
     }
 
-    /// 返回一个单调递增的 nonce
+    /// 获取单调递增的 nonce
+    ///
+    /// 保证：
+    /// - 当前时间戳 >= 上一个返回值
+    /// - 如果时间戳未增加，则使用上一个值 + 1
+    /// - 避免 u64 溢出
     pub fn next(&self) -> u64 {
-        let now = self.unit.now();
+        loop {
+            let prev = self.nonce.load(Ordering::SeqCst);
+            let now = self.unit.now();
+            let next = now.max(prev.saturating_add(1));
+            // 尝试原子更新，如果失败，循环重试
+            if self
+                .nonce
+                .compare_exchange(prev, next, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                return next;
+            }
+        }
+    }
+}
 
-        self.nonce
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |prev| {
-                Some(now.max(prev))
-            })
-            .expect("fetch_update failed")
+// 直接在 Arc<TimeNonce> 上实现 trait，方便共享
+impl ValueFactory<u64> for Arc<TimeNonce> {
+    fn create(&self) -> u64 {
+        self.next()
     }
 }

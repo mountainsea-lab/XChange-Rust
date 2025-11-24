@@ -13,6 +13,11 @@ pub mod exchange_specification;
 pub mod instrument;
 pub mod service;
 pub mod utils;
+
+pub trait ValueFactory<T>: Send + Sync {
+    fn create(&self) -> T;
+}
+
 #[derive(Debug)]
 pub enum BuildError {
     MissingField(String),
