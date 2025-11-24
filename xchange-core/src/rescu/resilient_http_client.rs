@@ -1,6 +1,7 @@
 use crate::client::{RateLimiter, RetryConfig};
 use crate::rescu::HttpError;
 use reqwest::{Client, Proxy};
+use std::io;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -31,5 +32,20 @@ impl ResilientHttpClient {
             retry,
             rate_limiter: Arc::new(Mutex::new(limiter)),
         })
+    }
+
+    pub async fn acquire_limiter(&self) -> Result<(), HttpError> {
+        let mut guard = match self.rate_limiter.lock() {
+            Ok(g) => g,
+            Err(_) => {
+                return Err(HttpError::Io(io::Error::new(
+                    io::ErrorKind::Other,
+                    "rate limiter mutex poisoned",
+                )));
+            }
+        };
+
+        guard.acquire().await;
+        Ok(())
     }
 }
