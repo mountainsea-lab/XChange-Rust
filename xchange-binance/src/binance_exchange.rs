@@ -1,10 +1,15 @@
+// use async_trait::async_trait;
+// use std::cell::OnceCell;
 // use std::sync::Arc;
-// use xchange_core::exchange::BaseExchange;
+// use xchange_core::ValueFactory;
+// use xchange_core::client::resilience_registries::ResilienceRegistries;
+// use xchange_core::error::exchange_error::ExchangeError;
+// use xchange_core::exchange::{BaseExchange, Exchange};
 // use xchange_core::exchange_specification::ExchangeSpecification;
 //
 // pub struct BinanceExchange {
 //     pub base: BaseExchange,
-//     pub timestamp_factory: Arc<dyn SynchronizedValueFactory<u64> + Send + Sync>,
+//     pub timestamp_factory: Arc<dyn ValueFactory<u64> + Send + Sync>,
 // }
 //
 // impl BinanceExchange {
@@ -56,6 +61,14 @@
 //     pub fn is_authenticated(&self) -> bool {
 //         self.base.exchange_spec.api_key.is_some() && self.base.exchange_spec.secret_key.is_some()
 //     }
+//
+//     fn init_services(&mut self) {
+//         let registries = self.get_resilience_registries();
+//         self.timestamp_factory = Arc::new(DummyTimestampFactory {});
+//         self.base.market_data_service = Arc::new(DummyMarketDataService {});
+//         self.base.trade_service = Arc::new(DummyTradeService {});
+//         self.base.account_service = Arc::new(DummyAccountService {});
+//     }
 // }
 //
 // // 用 OnceCell 实现静态 RESILIENCE_REGISTRIES
@@ -82,15 +95,7 @@
 //         self.base.apply_specification(spec);
 //     }
 //
-//     fn init_services(&mut self) {
-//         let registries = self.get_resilience_registries();
-//         self.timestamp_factory = Arc::new(DummyTimestampFactory {});
-//         self.base.market_data_service = Arc::new(DummyMarketDataService {});
-//         self.base.trade_service = Arc::new(DummyTradeService {});
-//         self.base.account_service = Arc::new(DummyAccountService {});
-//     }
-//
-//     fn get_resilience_registries(&self) -> Arc<ResilienceRegistries> {
+//     fn resilience_registries(&self) -> Arc<ResilienceRegistries> {
 //         RESILIENCE_REGISTRIES
 //             .get_or_init(|| Arc::new(ResilienceRegistries {}))
 //             .clone()

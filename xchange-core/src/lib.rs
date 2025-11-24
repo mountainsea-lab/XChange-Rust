@@ -11,6 +11,7 @@ pub mod error;
 pub mod exchange;
 pub mod exchange_specification;
 pub mod instrument;
+pub mod rescu;
 pub mod service;
 pub mod utils;
 
