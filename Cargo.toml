@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["xchange-binance","xchange-core"]
+members = ["xchange-binance","xchange-core", "xchange-macros"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,8 @@ authors = ["mountainsea-lab <w1999wtw3537@gmail.com>"]
 repository = "https://github.com/mountainsea-lab/XChange-Rust.git"
 
 [workspace.dependencies]
+xchange-macros =  { path = "xchange-macros" }
+xchange-core =  { path = "xchange-core" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145" }
 once_cell = "1.20.3"
@@ -25,7 +27,7 @@ thiserror = "2.0.11"
 async-trait = "0.1.89"
 tokio = "1.44.0"
 reqwest = "0.12.24"
-xchange-core =  { path = "xchange-core" }
+
 syn = "2.0.111"
 quote = "1.0.42"
 proc-macro2 = "1.0.103"

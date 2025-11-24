@@ -1,6 +1,6 @@
 use std::{fmt, io};
 
-mod resilient_http_client;
+pub mod resilient_http_client;
 
 #[derive(Debug)]
 pub enum HttpError {
