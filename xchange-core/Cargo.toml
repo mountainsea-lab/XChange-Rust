@@ -20,4 +20,4 @@ parking_lot = {workspace = true }
 thiserror = {workspace = true }
 async-trait = {workspace = true }
 tokio = {workspace = true, features = ["time", "sync"] }
-reqwest = {workspace = true, features = ["rustls-tls"]  }
+reqwest = {workspace = true, features = ["rustls-tls",'json']  }
