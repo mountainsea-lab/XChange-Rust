@@ -1,7 +1,7 @@
-use async_trait::async_trait;
 use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
+use async_trait::async_trait;
 
 /// Binance API Trait 抽象
 #[async_trait]
@@ -35,15 +35,15 @@ pub trait Binance {
     //     limit: Option<u32>,
     // ) -> Result<Vec<BinanceAggTrades>, BinanceError>;
     //
-    // /// Klines / candlesticks
-    // async fn klines(
-    //     &self,
-    //     symbol: &str,
-    //     interval: &str,
-    //     limit: Option<u32>,
-    //     start_time: Option<u64>,
-    //     end_time: Option<u64>,
-    // ) -> Result<Vec<Vec<serde_json::Value>>, BinanceError>;
+    /// Klines / candlesticks
+    async fn klines(
+        &self,
+        symbol: &str,
+        interval: &str,
+        limit: Option<u32>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
+    ) -> Result<Vec<Vec<serde_json::Value>>, BinanceError>;
     //
     // /// 24h ticker for all symbols
     // async fn ticker_24h_all(&self) -> Result<Vec<BinanceTicker24h>, BinanceError>;

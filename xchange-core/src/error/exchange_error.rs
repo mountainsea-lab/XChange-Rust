@@ -108,6 +108,9 @@ define_exchange_error!(
 // Exception indicating that an order placed or verified was not valid.
 define_exchange_error!(OrderNotValidError, "Invalid order");
 
+// Exception indicating that an order placed or verified was not valid.
+define_exchange_error!(OrderAmountUnderMinimumError, "Orders amount under minimum");
+
 // An exception indicating that the rate limit for making requests has been exceeded.
 define_exchange_error!(
     RateLimitExceededError,
