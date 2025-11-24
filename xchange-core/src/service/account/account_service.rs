@@ -11,7 +11,7 @@ use crate::service::trade::params::TradeHistoryParams;
 use std::collections::HashMap;
 
 /// AccountService inherits BaseService functionality.
-pub trait AccountService: BaseService {
+pub trait AccountService: BaseService + Send + Sync {
     fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_account_info").into())
     }

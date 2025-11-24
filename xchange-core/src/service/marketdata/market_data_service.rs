@@ -10,7 +10,7 @@ use crate::service::BaseService;
 use crate::service::marketdata::params::Params;
 
 /// Service to explore market data
-pub trait MarketDataService: BaseService {
+pub trait MarketDataService: BaseService + Send + Sync {
     /// Get the exchange health
     fn exchange_health(&self) -> ExchangeHealth {
         ExchangeHealth::Online

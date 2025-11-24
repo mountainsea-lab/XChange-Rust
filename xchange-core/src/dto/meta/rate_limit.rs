@@ -1,3 +1,4 @@
+use crate::TimeUnit;
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// Describe a call rate limit as a number of calls per some time span.
@@ -64,20 +65,6 @@ impl Default for RateLimit {
             time_unit: default_time_unit(),
         }
     }
-}
-
-// ---- TimeUnit ----
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum TimeUnit {
-    Nanoseconds,
-    Microseconds,
-    Milliseconds,
-    Seconds,
-    Minutes,
-    Hours,
-    Days,
 }
 
 impl TimeUnit {

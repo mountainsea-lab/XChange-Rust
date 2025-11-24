@@ -15,7 +15,7 @@ use crate::service::trade::params::{CancelAllOrders, CancelOrderParams, TradeHis
 use std::collections::HashSet;
 
 /// TradeService trait
-pub trait TradeService: BaseService {
+pub trait TradeService: BaseService + Send + Sync {
     // ------------------ 核心交易方法 ------------------
     fn open_orders(&self) -> Result<OpenOrders, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("open_orders").into())

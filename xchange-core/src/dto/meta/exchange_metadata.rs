@@ -9,12 +9,12 @@ use std::collections::HashMap;
 /// Exchange metadata containing instruments, currencies and rate limits.
 ///
 /// This is loaded at startup and merges local JSON metadata + online exchange info.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ExchangeMetaData {
     /// Map of InstrumentDTO -> InstrumentMetaData
     #[serde(rename = "currency_pairs")]
     pub instruments: HashMap<InstrumentDTO, InstrumentMetaData>,
-
+    // pub instruments: HashMap<Arc<dyn Instrument + Send + Sync>, Value>,
     /// Map of Currency -> CurrencyMetaData
     #[serde(rename = "currencies")]
     pub currencies: HashMap<Currency, CurrencyMetaData>,

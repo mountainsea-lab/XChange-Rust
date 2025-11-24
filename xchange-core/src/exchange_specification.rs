@@ -69,6 +69,38 @@ impl ExchangeSpecification {
     pub fn get_parameter(&self, key: &str) -> Option<&Value> {
         self.exchange_specific_parameters.get(key)
     }
+
+    /// 用 default 填充缺失字段
+    pub fn fill_missing_from(&mut self, default: &ExchangeSpecification) {
+        if self.exchange_name.is_none() {
+            self.exchange_name = default.exchange_name.clone();
+        }
+        if self.exchange_description.is_none() {
+            self.exchange_description = default.exchange_description.clone();
+        }
+        if self.ssl_uri.is_none() {
+            self.ssl_uri = default.ssl_uri.clone();
+        }
+        if self.plain_text_uri.is_none() {
+            self.plain_text_uri = default.plain_text_uri.clone();
+        }
+        if self.host.is_none() {
+            self.host = default.host.clone();
+        }
+        if self.port == 0 {
+            self.port = default.port;
+        }
+        if self.exchange_specific_parameters.is_empty() {
+            self.exchange_specific_parameters = default.exchange_specific_parameters.clone();
+        } else {
+            // 只填充缺失 key
+            for (k, v) in &default.exchange_specific_parameters {
+                self.exchange_specific_parameters
+                    .entry(k.clone())
+                    .or_insert(v.clone());
+            }
+        }
+    }
 }
 
 /// Builder for ExchangeSpecification
@@ -213,7 +245,34 @@ impl ExchangeSpecificationBuilder {
     }
 
     pub fn build(self) -> ExchangeSpecification {
+        // ExchangeSpecification {
+        //     exchange_name: self.exchange_name,
+        //     exchange_description: self.exchange_description,
+        //     user_name: self.user_name,
+        //     password: self.password,
+        //     secret_key: self.secret_key,
+        //     api_key: self.api_key,
+        //     ssl_uri: self.ssl_uri,
+        //     plain_text_uri: self.plain_text_uri,
+        //     override_websocket_api_uri: self.override_websocket_api_uri,
+        //     host: self.host,
+        //     port: self.port.unwrap_or(80),
+        //     proxy_host: self.proxy_host,
+        //     proxy_port: self.proxy_port,
+        //     http_conn_timeout: self.http_conn_timeout.unwrap_or(0),
+        //     http_read_timeout: self.http_read_timeout.unwrap_or(0),
+        //     resilience: self.resilience.unwrap_or_default(),
+        //     meta_data_json_file_override: self.meta_data_json_file_override,
+        //     should_load_remote_meta_data: self.should_load_remote_meta_data.unwrap_or(true),
+        //     exchange_specific_parameters: self.exchange_specific_parameters,
+        // }
+
         ExchangeSpecification {
+            port: self.port.unwrap_or(80),
+            http_conn_timeout: self.http_conn_timeout.unwrap_or(10_000),
+            http_read_timeout: self.http_read_timeout.unwrap_or(10_000),
+            should_load_remote_meta_data: self.should_load_remote_meta_data.unwrap_or(true),
+            resilience: self.resilience.unwrap_or_default(),
             exchange_name: self.exchange_name,
             exchange_description: self.exchange_description,
             user_name: self.user_name,
@@ -224,15 +283,10 @@ impl ExchangeSpecificationBuilder {
             plain_text_uri: self.plain_text_uri,
             override_websocket_api_uri: self.override_websocket_api_uri,
             host: self.host,
-            port: self.port.unwrap_or(80),
             proxy_host: self.proxy_host,
             proxy_port: self.proxy_port,
-            http_conn_timeout: self.http_conn_timeout.unwrap_or(0),
-            http_read_timeout: self.http_read_timeout.unwrap_or(0),
-            resilience: self.resilience.unwrap_or_default(),
-            meta_data_json_file_override: self.meta_data_json_file_override,
-            should_load_remote_meta_data: self.should_load_remote_meta_data.unwrap_or(true),
             exchange_specific_parameters: self.exchange_specific_parameters,
+            meta_data_json_file_override: self.meta_data_json_file_override,
         }
     }
 }
