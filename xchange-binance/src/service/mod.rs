@@ -1,3 +1,4 @@
+use reqwest::Method;
 use std::sync::Arc;
 use xchange_core::rescu::HttpError;
 use xchange_core::rescu::params_digest::{BaseParamsDigest, HmacAlgorithm, ParamsDigest};
@@ -17,7 +18,12 @@ impl BinanceHmacDigest {
     }
 
     /// 构建交易所特定输入字符串
-    fn build_input_string(method: &str, query: &[(String, String)], body: Option<&str>) -> String {
+    fn build_input_string(
+        method: &Method,
+        query: &[(String, String)],
+        body: Option<&str>,
+    ) -> String {
+        // 1. 构造 query_string（过滤 signature）
         let query_str = BaseParamsDigest::build_query_string(
             &query
                 .iter()
@@ -26,10 +32,24 @@ impl BinanceHmacDigest {
                 .collect::<Vec<_>>(),
         );
 
-        match method {
+        // 2. Method → &str ("GET", "POST"...)
+        let m = method.as_str();
+
+        // 3. Binance 特定规则
+        match m {
             "GET" | "DELETE" => query_str,
-            "POST" => query_str + body.unwrap_or(""),
-            _ => query_str, // 默认策略，可以在 digest_request 里返回 Err
+
+            // POST 场景通常 body 参与签名
+            "POST" => {
+                if let Some(b) = body {
+                    query_str + b
+                } else {
+                    query_str
+                }
+            }
+
+            // 其他方法（PUT, PATCH...）——目前 Binance 不用
+            _ => query_str,
         }
     }
 }
@@ -37,7 +57,10 @@ impl BinanceHmacDigest {
 impl ParamsDigest for BinanceHmacDigest {
     fn digest_request(&self, req: &RequestBuilder) -> Result<String, HttpError> {
         if !["GET", "POST", "DELETE"].contains(&req.method.as_str()) {
-            return Err(HttpError::UnsupportedMethod(req.method.clone()));
+            return Err(HttpError::UnsupportedMethod(format!(
+                "Unsupported method: {}",
+                req.method
+            )));
         }
 
         let input = Self::build_input_string(&req.method, &req.query, req.body.as_deref());

@@ -11,6 +11,7 @@ pub enum HttpError {
     Io(io::Error),
     InvalidKey(String),
     InvalidTimestamp(SystemTimeError),
+    UnsupportedMethod(String),
 }
 
 impl fmt::Display for HttpError {
@@ -21,6 +22,7 @@ impl fmt::Display for HttpError {
             HttpError::Io(e) => write!(f, "I/O error: {}", e),
             HttpError::InvalidKey(d) => write!(f, "Params Digest Invalid: {}", d),
             HttpError::InvalidTimestamp(t) => write!(f, "Timestamp Invalid: {}", t),
+            HttpError::UnsupportedMethod(u) => write!(f, "Unsupported Method: {}", u),
         }
     }
 }
