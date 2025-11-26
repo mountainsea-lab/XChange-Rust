@@ -1,3 +1,4 @@
+use reqwest::StatusCode;
 use std::time::SystemTimeError;
 use std::{fmt, io};
 
@@ -9,6 +10,7 @@ pub enum HttpError {
     Reqwest(reqwest::Error),
     InvalidProxy(String),
     Io(io::Error),
+    Status(StatusCode),
     InvalidKey(String),
     InvalidTimestamp(SystemTimeError),
     UnsupportedMethod(String),
@@ -23,6 +25,7 @@ impl fmt::Display for HttpError {
             HttpError::InvalidKey(d) => write!(f, "Params Digest Invalid: {}", d),
             HttpError::InvalidTimestamp(t) => write!(f, "Timestamp Invalid: {}", t),
             HttpError::UnsupportedMethod(u) => write!(f, "Unsupported Method: {}", u),
+            HttpError::Status(s) => write!(f, "Status : {}", s),
         }
     }
 }
