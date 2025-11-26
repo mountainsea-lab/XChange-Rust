@@ -81,11 +81,11 @@ impl ResilientHttpClient {
 #[derive(Clone)]
 pub struct RequestBuilder {
     client: Arc<ResilientHttpClient>,
-    method: Method,
+    pub method: Method,
     path: String,
-    query: Vec<(String, String)>,
+    pub query: Vec<(String, String)>,
     headers: Vec<(String, String)>,
-    body: Option<String>,
+    pub body: Option<String>,
     signed: Option<(String, Arc<dyn ParamsDigest>)>, // (api_key, digest)
 }
 

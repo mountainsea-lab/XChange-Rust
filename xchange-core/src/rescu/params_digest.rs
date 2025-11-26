@@ -107,11 +107,20 @@ impl BaseParamsDigest {
     }
 
     /// 拼接 query 参数
-    fn build_query_string(params: &[(String, String)]) -> String {
+    pub fn build_query_string(params: &[(String, String)]) -> String {
         params
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
             .collect::<Vec<_>>()
             .join("&")
+    }
+
+    /// 对任意数据进行 HMAC 签名，返回 hex 字符串
+    pub fn digest_bytes(&self, data: &[u8]) -> String {
+        hex::encode(self.mac.finalize_clone(data))
+    }
+
+    pub fn digest_str(&self, s: &str) -> String {
+        self.digest_bytes(s.as_bytes())
     }
 }
