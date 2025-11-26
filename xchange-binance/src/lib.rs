@@ -1,5 +1,6 @@
 pub mod binance;
 pub mod binance_error_adapter;
-mod binance_exchange;
-mod binance_resilience;
+pub mod binance_exchange;
+pub mod binance_resilience;
 pub mod dto;
+pub mod service;

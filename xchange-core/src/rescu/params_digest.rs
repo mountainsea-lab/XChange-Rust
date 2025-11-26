@@ -1,57 +1,106 @@
 use crate::rescu::HttpError;
+use crate::rescu::resilient_http_client::RequestBuilder;
 use base64;
 use hmac::{Hmac, Mac};
-use sha2::{Sha256, Sha512};
+use sha2::{Sha256, Sha384, Sha512};
 use std::sync::Arc;
 
+/// -------------------------
 /// 签名 trait
+/// -------------------------
 pub trait ParamsDigest: Send + Sync {
-    /// 对 query 参数签名
-    fn digest(&self, query: &[(String, String)]) -> Result<String, HttpError>;
+    /// 根据 RequestBuilder 对请求进行签名
+    fn digest_request(&self, req: &RequestBuilder) -> Result<String, HttpError>;
 }
 
-/// 支持的 HMAC 算法
+/// -------------------------
+/// HMAC 算法枚举
+/// -------------------------
 #[derive(Clone, Copy)]
 pub enum HmacAlgorithm {
+    // Sha1,
     Sha256,
+    Sha384,
     Sha512,
+    // Md5,
 }
 
+/// -------------------------
 /// 内部通用 trait，用于多态 Mac
+/// -------------------------
 trait MacTrait: Send + Sync {
-    fn finalize_clone(&self) -> Vec<u8>;
+    fn finalize_clone(&self, data: &[u8]) -> Vec<u8>;
 }
 
-/// 包装 Hmac<Sha256> 或 Hmac<Sha512>
+/// -------------------------
+/// BaseParamsDigest
+/// -------------------------
 pub struct BaseParamsDigest {
     mac: Box<dyn MacTrait>,
 }
 
+// impl MacTrait for Hmac<Sha1> {
+//     fn finalize_clone(&self, data: &[u8]) -> Vec<u8> {
+//         let mut mac = self.clone();
+//         mac.update(data);
+//         mac.finalize().into_bytes().to_vec()
+//     }
+// }
+
 impl MacTrait for Hmac<Sha256> {
-    fn finalize_clone(&self) -> Vec<u8> {
-        self.clone().finalize().into_bytes().to_vec()
+    fn finalize_clone(&self, data: &[u8]) -> Vec<u8> {
+        let mut mac = self.clone();
+        mac.update(data);
+        mac.finalize().into_bytes().to_vec()
+    }
+}
+
+impl MacTrait for Hmac<Sha384> {
+    fn finalize_clone(&self, data: &[u8]) -> Vec<u8> {
+        let mut mac = self.clone();
+        mac.update(data);
+        mac.finalize().into_bytes().to_vec()
     }
 }
 
 impl MacTrait for Hmac<Sha512> {
-    fn finalize_clone(&self) -> Vec<u8> {
-        self.clone().finalize().into_bytes().to_vec()
+    fn finalize_clone(&self, data: &[u8]) -> Vec<u8> {
+        let mut mac = self.clone();
+        mac.update(data);
+        mac.finalize().into_bytes().to_vec()
     }
 }
 
+// impl MacTrait for Hmac<Md5> {
+//     fn finalize_clone(&self, data: &[u8]) -> Vec<u8> {
+//         let mut mac = self.clone();
+//         mac.update(data);
+//         mac.finalize().into_bytes().to_vec()
+//     }
+// }
+
 impl BaseParamsDigest {
-    /// 创建一个新的签名器，secret_base64 必须是 base64 编码
+    /// 创建 BaseParamsDigest
     pub fn new(secret_base64: &str, algo: HmacAlgorithm) -> Result<Arc<Self>, HttpError> {
         let key_bytes = base64::decode(secret_base64)
             .map_err(|e| HttpError::InvalidKey(format!("Invalid base64 key: {}", e)))?;
 
         let mac: Box<dyn MacTrait> = match algo {
+            // HmacAlgorithm::Sha1 => Hmac::<Sha1>::new_from_slice(&key_bytes)
+            //     .map(|h| Box::new(h) as Box<dyn MacTrait>)
+            //     .map_err(|e| HttpError::InvalidKey(format!("HMAC init failed: {}", e)))?,
             HmacAlgorithm::Sha256 => Hmac::<Sha256>::new_from_slice(&key_bytes)
+                .map(|h| Box::new(h) as Box<dyn MacTrait>)
+                .map_err(|e| HttpError::InvalidKey(format!("HMAC init failed: {}", e)))?,
+            HmacAlgorithm::Sha384 => Hmac::<Sha384>::new_from_slice(&key_bytes)
                 .map(|h| Box::new(h) as Box<dyn MacTrait>)
                 .map_err(|e| HttpError::InvalidKey(format!("HMAC init failed: {}", e)))?,
             HmacAlgorithm::Sha512 => Hmac::<Sha512>::new_from_slice(&key_bytes)
                 .map(|h| Box::new(h) as Box<dyn MacTrait>)
                 .map_err(|e| HttpError::InvalidKey(format!("HMAC init failed: {}", e)))?,
+            // HmacAlgorithm::Md5 => Hmac::<Md5>::new_from_slice(&key_bytes)
+            //     .map(|h| Box::new(h) as Box<dyn MacTrait>)
+            //     .map_err(|e| HttpError::InvalidKey(format!("HMAC init failed: {}", e)))?,
         };
 
         Ok(Arc::new(Self { mac }))
@@ -66,27 +115,3 @@ impl BaseParamsDigest {
             .join("&")
     }
 }
-
-impl ParamsDigest for BaseParamsDigest {
-    fn digest(&self, params: &[(String, String)]) -> Result<String, HttpError> {
-        // 拼接 query
-        let query_str = Self::build_query_string(params);
-
-        // 克隆 Mac 进行计算，避免多线程冲突
-        let mac_bytes = self.mac.finalize_clone();
-
-        Ok(hmac_sha256(query_str.as_bytes(), &mac_bytes))
-    }
-}
-
-/// 辅助函数：计算 HMAC-SHA256
-fn hmac_sha256(data: &[u8], key: &[u8]) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(key).expect("Hmac init failed");
-    mac.update(data);
-    hex::encode(mac.finalize().into_bytes())
-}
-
-// ===================== 使用示例 =====================
-// let digest = BaseParamsDigest::new(api_secret_base64, HmacAlgorithm::Sha256)?;
-// let query = vec![("symbol".into(), "BTCUSDT".into()), ("timestamp".into(), "123456789".into())];
-// let signature = digest.digest(&query)?;

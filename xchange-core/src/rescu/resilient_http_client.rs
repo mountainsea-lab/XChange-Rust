@@ -85,6 +85,7 @@ pub struct RequestBuilder {
     path: String,
     query: Vec<(String, String)>,
     headers: Vec<(String, String)>,
+    body: Option<String>,
     signed: Option<(String, Arc<dyn ParamsDigest>)>, // (api_key, digest)
 }
 
@@ -96,6 +97,7 @@ impl RequestBuilder {
             path: path.into(),
             query: vec![],
             headers: vec![],
+            body: None,
             signed: None,
         }
     }
@@ -110,6 +112,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn body(mut self, b: impl Into<String>) -> Self {
+        self.body = Some(b.into());
+        self
+    }
+
     /// 链式签名方法
     pub fn signed(mut self, api_key: impl Into<String>, digest: Arc<dyn ParamsDigest>) -> Self {
         self.signed = Some((api_key.into(), digest));
@@ -119,19 +126,17 @@ impl RequestBuilder {
     fn build_query_with_signature(&self) -> Result<Vec<(String, String)>, HttpError> {
         let mut q = self.query.clone();
 
-        // 自动注入 timestamp
+        // timestamp
         let ts = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|_| {
-                HttpError::Io(io::Error::new(io::ErrorKind::Other, "invalid system time"))
-            })?
+            .map_err(HttpError::InvalidTimestamp)?
             .as_millis()
             .to_string();
         q.push(("timestamp".to_string(), ts));
 
-        // 如果设置了签名
         if let Some((_api_key, digest)) = &self.signed {
-            let signature = digest.digest(&q)?;
+            // 让 digest 获取所有参数（method + body + query）
+            let signature = digest.digest_request(self)?;
             q.push(("signature".to_string(), signature));
         }
 

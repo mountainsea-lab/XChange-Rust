@@ -1,3 +1,4 @@
+use std::time::SystemTimeError;
 use std::{fmt, io};
 
 pub mod params_digest;
@@ -9,6 +10,7 @@ pub enum HttpError {
     InvalidProxy(String),
     Io(io::Error),
     InvalidKey(String),
+    InvalidTimestamp(SystemTimeError),
 }
 
 impl fmt::Display for HttpError {
@@ -18,6 +20,7 @@ impl fmt::Display for HttpError {
             HttpError::InvalidProxy(p) => write!(f, "invalid proxy: {}", p),
             HttpError::Io(e) => write!(f, "I/O error: {}", e),
             HttpError::InvalidKey(d) => write!(f, "Params Digest Invalid: {}", d),
+            HttpError::InvalidTimestamp(t) => write!(f, "Timestamp Invalid: {}", t),
         }
     }
 }
