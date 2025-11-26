@@ -10,9 +10,11 @@ use syn::{
 
 /// Try to parse attribute macro arg as a string literal path: #[api_get("/path")]
 fn parse_path_from_attr_args(attr_args: TokenStream) -> Option<String> {
+    // Expect either empty or a single string literal
     if attr_args.is_empty() {
         return None;
     }
+    // Try parse as LitStr
     let lit: Result<syn::LitStr, _> = syn::parse(attr_args);
     if let Ok(s) = lit {
         Some(s.value())
@@ -21,6 +23,7 @@ fn parse_path_from_attr_args(attr_args: TokenStream) -> Option<String> {
     }
 }
 
+/// Check if a type is Option<T> and return inner T if so
 fn option_inner(ty: &Type) -> Option<Type> {
     if let Type::Path(TypePath { path, .. }) = ty {
         if path.segments.len() == 1 && path.segments[0].ident == "Option" {
@@ -34,6 +37,7 @@ fn option_inner(ty: &Type) -> Option<Type> {
     None
 }
 
+/// Check if a type is Vec<T> and return inner T
 fn vec_inner(ty: &Type) -> Option<Type> {
     if let Type::Path(TypePath { path, .. }) = ty {
         if path.segments.len() == 1 && path.segments[0].ident == "Vec" {
@@ -47,6 +51,7 @@ fn vec_inner(ty: &Type) -> Option<Type> {
     None
 }
 
+/// Detect HashMap<String,String> simple case
 fn is_hashmap_string_string(ty: &Type) -> bool {
     if let Type::Path(TypePath { path, .. }) = ty {
         if path.segments.len() == 1 && path.segments[0].ident == "HashMap" {
@@ -114,6 +119,7 @@ fn parse_param_role(attrs: &[Attribute]) -> Option<ParamRole> {
         } else if attr.path().is_ident("json") || attr.path().is_ident("body") {
             return Some(ParamRole::Json);
         } else if attr.path().is_ident("timestamp") {
+            // parse optional #[timestamp(name = "ts")]
             let mut name: Option<String> = None;
             let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
                 while !input.is_empty() {
@@ -133,6 +139,7 @@ fn parse_param_role(attrs: &[Attribute]) -> Option<ParamRole> {
             });
             return Some(ParamRole::Timestamp(name));
         } else if attr.path().is_ident("sig") || attr.path().is_ident("signature") {
+            // parse #[sig(key="signature", header="X-SIGN")]
             let mut key: Option<String> = None;
             let mut header: Option<String> = None;
             let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
@@ -157,6 +164,7 @@ fn parse_param_role(attrs: &[Attribute]) -> Option<ParamRole> {
             });
             return Some(ParamRole::Signature { key, header });
         } else if attr.path().is_ident("header") {
+            // parse #[header = "NAME"]
             let mut name: Option<String> = None;
             let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
                 if !input.is_empty() {
@@ -180,6 +188,7 @@ fn method_allows_body(method: &str) -> bool {
 
 /// Core expansion function used for GET/POST/DELETE/PATCH
 fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -> TokenStream {
+    // parse optional path passed to attribute like #[api_post("/api/v3/order")]
     let path_opt = parse_path_from_attr_args(attr_tokens);
 
     let input_fn = parse_macro_input!(input as ItemFn);
@@ -208,6 +217,7 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
 
     for arg in fn_inputs.iter() {
         if let FnArg::Typed(pat_ty) = arg {
+            // only support simple identifier patterns
             let ident = if let Pat::Ident(PatIdent { ident, .. }) = &*pat_ty.pat {
                 ident.clone()
             } else {
@@ -246,6 +256,7 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
         let ident = &p.ident;
         match &p.role {
             ParamRole::Header(name_opt) => {
+                // header may have explicit name or use param name
                 let header_key = if let Some(n) = name_opt {
                     n.clone()
                 } else {
@@ -395,10 +406,18 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
         None => "/".to_string(),
     };
 
-    // timestamp insertion code
+    // Build final generated function
+    // Key steps:
+    // 1. Build explicit_query, explicit_form, explicit_headers from params
+    // 2. If timestamp param exists -> call factory.create_value() and push into explicit_query
+    // 3. canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone())
+    // 4. If signer exists -> call signer.digest(&RestInvocation{...}) and insert signature to query or header based on annotation
+    // 5. Apply explicit collections to reqwest RequestBuilder, set form/json if needed
+    // 6. Send & parse response into Ok type
+    //
     let timestamp_insertion = if let Some((ref ts_ident, ref ts_key)) = timestamp_param {
         quote! {
-            // timestamp factory
+            // call TimestampFactory.create_value()
             let ts_val = #ts_ident.create_value();
             explicit_query.push((#ts_key.to_string(), ts_val.to_string()));
         }
@@ -406,44 +425,35 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
         quote! {}
     };
 
-    // signature handling: build canonical pairs and call signer.digest(&invocation)
     let signature_handling = if let Some((ref signer_ident, ref key_opt, ref header_opt)) =
         signature_param
     {
+        // default signature key name
         let sig_key = key_opt
             .as_ref()
             .map(|s| s.clone())
             .unwrap_or_else(|| "signature".to_string());
         let header_name = header_opt.clone();
-        // header_name is Option<String>, quote! with it requires moving into tokens
-        if header_name.is_some() {
-            let header_name_lit = header_name.unwrap();
-            quote! {
-                // build canonical pairs for signing
-                let canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone());
-                let invocation = crate::client::RestInvocation {
-                    method: #method.to_string(),
-                    path: #path_literal.to_string(),
-                    query: canonical_pairs.clone(),
-                    headers: explicit_headers.clone(),
-                    body: None,
-                };
-                // call signer (assumed to implement digest(&RestInvocation) -> String)
-                let sig_val = #signer_ident.digest(&invocation);
-                explicit_headers.push((#header_name_lit.to_string(), sig_val));
-            }
-        } else {
-            quote! {
-                let canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone());
-                let invocation = crate::client::RestInvocation {
-                    method: #method.to_string(),
-                    path: #path_literal.to_string(),
-                    query: canonical_pairs.clone(),
-                    headers: explicit_headers.clone(),
-                    body: None,
-                };
-                let sig_val = #signer_ident.digest(&invocation);
-                explicit_query.push((#sig_key.to_string(), sig_val));
+        quote! {
+            // build canonical pairs for signing (runtime helper)
+            let canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone());
+            let invocation = crate::client::RestInvocation {
+                method: #method.to_string(),
+                path: #path_literal.to_string(),
+                query: canonical_pairs.clone(),
+                headers: explicit_headers.clone(),
+                body: None,
+            };
+            // call digest
+            let sig_val = #signer_ident.digest(&invocation);
+            // insert signature into query or header
+            match #header_name {
+                Some(ref hname) => {
+                    explicit_headers.push((hname.clone(), sig_val));
+                },
+                None => {
+                    explicit_query.push((#sig_key.to_string(), sig_val));
+                }
             }
         }
     } else {
@@ -451,138 +461,25 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
     };
 
     let json_body_setting = if let Some(ref body_ident) = json_body_ident {
+        // if json body present: prefer json; remove any conflicting form keys
         quote! {
-            // serialize JSON body value
+            // serialize JSON body
             let body_val = serde_json::to_value(&#body_ident).map_err(crate::client::HttpError::Reqwest)?;
-            // later: req = req.json(&body_val);
+            // set json body later with req = req.json(&body_val);
         }
     } else {
         quote! {}
     };
 
-    // Build final generated function
+    // Now generate function body
     let gen_fun = quote! {
         #fn_vis #fn_asyncness fn #fn_name(&self, #fn_inputs) #fn_output {
-            // url and client capture
             let url = format!("{}{}", self.base_url, #path_literal);
-            let client_arc = self.client.clone();
+            let client = self.client.clone();
 
-            // execute via ResilientHttpClient::execute which expects Arc<Self>.execute(|| async move { ... })
-            // we return the future from execute, so the outer function must be async (kept from original signature)
-            let fut = async move {
-                // build explicit collections based on parameters
-                let mut explicit_query: Vec<(String,String)> = Vec::new();
-                let mut explicit_form: Vec<(String,String)> = Vec::new();
-                let mut explicit_headers: Vec<(String,String)> = Vec::new();
-
-                #(#push_query_tokens)*
-                #(#push_form_tokens)*
-                #(#push_header_tokens)*
-
-                #timestamp_insertion
-                #signature_handling
-
-                // perform HTTP request inside the resilient client's retry/ratelimit wrapper
-                let client_for_exec = client_arc.clone();
-                client_for_exec.clone().execute(move || {
-                    // closure given to execute: no args, returns a future
-                    let client_inner = client_arc.clone();
-                    let url_inner = url.clone();
-                    let mut explicit_query_inner = explicit_query.clone();
-                    let explicit_form_inner = explicit_form.clone();
-                    let explicit_headers_inner = explicit_headers.clone();
-                    async move {
-                        // build reqwest request using inner client (reqwest::Client)
-                        let mut req = client_inner.http.request(reqwest::Method::#method_ident, &url_inner);
-
-                        // apply query params
-                        for (k, v) in &explicit_query_inner {
-                            req = req.query(&[(k.as_str(), v.as_str())]);
-                        }
-                        // apply headers
-                        for (k, v) in &explicit_headers_inner {
-                            req = req.header(k.as_str(), v.as_str());
-                        }
-
-                        #json_body_setting
-
-                        // apply form if present and method allows body
-                        if !explicit_form_inner.is_empty() {
-                            // form requires ownership of pairs
-                            req = req.form(&explicit_form_inner);
-                        }
-
-                        // if we set a json body earlier, attach it
-                        #[allow(unused_mut)]
-                        let mut req = {
-                            #[allow(unused_variables)]
-                            {
-                                // if json body exists, set via req.json
-                                #[allow(unused_mut)]
-                                let r = req;
-                                // If a json body was prepared, attach it.
-                                // We used json_body_setting above to produce body_val when needed.
-                                // To avoid shadowing issues, check at compile expansion time whether json exists
-                                // and attach accordingly.
-                                #[allow(unused_braces)]
-                                {
-                                    // If macro produced body_val variable, compile will use it; otherwise this is a no-op.
-                                    #[allow(unused_variables)]
-                                    let r = {
-                                        // the following block will only compile if json_body_ident was present in macro expansion
-                                        #[allow(unused_assignments)]
-                                        {
-                                            // This uses an early-return style via conditional compile-time expansion;
-                                            // if no json body was generated, the body_val symbol is absent and this block is never used.
-                                            r
-                                        }
-                                    };
-                                    r
-                                }
-                            }
-                        };
-
-                        // send request
-                        let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
-                        if resp.status().is_success() {
-                            let parsed = resp.json::<#ok_ty_tokens>().await.map_err(crate::client::HttpError::Reqwest)?;
-                            Ok(parsed)
-                        } else {
-                            Err(crate::client::HttpError::Io(
-                                std::io::Error::new(
-                                    std::io::ErrorKind::Other,
-                                    format!("HTTP status {}", resp.status())
-                                )
-                            ))
-                        }
-                    }
-                }).await
-            };
-
-            // return the awaited future (outer fn keeps asyncness so this compiles into .await by caller)
-            futures::executor::block_on(fut)
-        }
-    };
-
-    // NOTE:
-    // The above uses futures::executor::block_on to produce a synchronous return in the generated function body
-    // only if the original function signature wasn't async. If the original function signature is async, the
-    // block_on should not be used. To be safe and preserve the original asyncness we detect it:
-    //
-    // But we captured fn_asyncness from the original signature and included it in the generated fn,
-    // so we need the body to `await` the execute fut rather than block_on. Replace the last lines accordingly.
-    //
-    // Re-generate final with proper await handling:
-
-    let gen_fun = {
-        // if original function was async, we should `.await` inside the body, otherwise return a future
-        // However earlier we kept fn_asyncness in the signature, so the function is async already
-        // So adjust body: call `.await` directly.
-        quote! {
-            #fn_vis #fn_asyncness fn #fn_name(&self, #fn_inputs) #fn_output {
-                let url = format!("{}{}", self.base_url, #path_literal);
-                let client_arc = self.client.clone();
-
+            client.execute(move |client_ref| {
+                let client = client.clone();
+                let url = url.clone();
                 async move {
                     let mut explicit_query: Vec<(String,String)> = Vec::new();
                     let mut explicit_form: Vec<(String,String)> = Vec::new();
@@ -595,46 +492,35 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
                     #timestamp_insertion
                     #signature_handling
 
-                    // execute request via resilient client
-                    let client_for_exec = client_arc.clone();
-                    client_for_exec.clone().execute(move || {
-                        let client_inner = client_arc.clone();
-                        let url_inner = url.clone();
-                        let explicit_query_inner = explicit_query.clone();
-                        let explicit_form_inner = explicit_form.clone();
-                        let explicit_headers_inner = explicit_headers.clone();
-                        async move {
-                            let mut req = client_inner.http.request(reqwest::Method::#method_ident, &url_inner);
+                    let mut req = client.http.request(reqwest::Method::#method_ident, &url);
 
-                            for (k, v) in &explicit_query_inner {
-                                req = req.query(&[(k.as_str(), v.as_str())]);
-                            }
-                            for (k, v) in &explicit_headers_inner {
-                                req = req.header(k.as_str(), v.as_str());
-                            }
+                    for (k,v) in &explicit_query {
+                        req = req.query(&[(k.as_str(),v.as_str())]);
+                    }
+                    for (k,v) in &explicit_headers {
+                        req = req.header(k.as_str(), v.as_str());
+                    }
 
-                            #json_body_setting
+                    #json_body_setting
 
-                            if !explicit_form_inner.is_empty() {
-                                req = req.form(&explicit_form_inner);
-                            }
+                    if !explicit_form.is_empty() && method_allows_body(#method) {
+                        req = req.form(&explicit_form);
+                    }
 
-                            let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
-                            if resp.status().is_success() {
-                                let parsed = resp.json::<#ok_ty_tokens>().await.map_err(crate::client::HttpError::Reqwest)?;
-                                Ok(parsed)
-                            } else {
-                                Err(crate::client::HttpError::Io(
-                                    std::io::Error::new(
-                                        std::io::ErrorKind::Other,
-                                        format!("HTTP status {}", resp.status())
-                                    )
-                                ))
-                            }
-                        }
-                    }).await
+                    let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
+                    if resp.status().is_success() {
+                        let parsed = resp.json::<#ok_ty_tokens>().await.map_err(crate::client::HttpError::Reqwest)?;
+                        Ok(parsed)
+                    } else {
+                        Err(crate::client::HttpError::Io(
+                            std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                format!("HTTP status {}", resp.status())
+                            )
+                        ))
+                    }
                 }
-            }
+            })
         }
     };
 
