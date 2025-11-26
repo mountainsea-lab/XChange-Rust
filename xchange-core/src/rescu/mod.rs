@@ -1,5 +1,6 @@
 use std::{fmt, io};
 
+pub mod params_digest;
 pub mod resilient_http_client;
 
 #[derive(Debug)]
@@ -7,6 +8,7 @@ pub enum HttpError {
     Reqwest(reqwest::Error),
     InvalidProxy(String),
     Io(io::Error),
+    InvalidKey(String),
 }
 
 impl fmt::Display for HttpError {
@@ -15,6 +17,7 @@ impl fmt::Display for HttpError {
             HttpError::Reqwest(e) => write!(f, "reqwest error: {}", e),
             HttpError::InvalidProxy(p) => write!(f, "invalid proxy: {}", p),
             HttpError::Io(e) => write!(f, "I/O error: {}", e),
+            HttpError::InvalidKey(d) => write!(f, "Params Digest Invalid: {}", d),
         }
     }
 }

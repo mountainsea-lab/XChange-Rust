@@ -1,5 +1,6 @@
 use crate::client::{RateLimiter, RetryConfig};
 use crate::rescu::HttpError;
+use crate::rescu::params_digest::ParamsDigest;
 use hmac::Mac;
 use reqwest::{Client, Method, Proxy};
 use serde::de::DeserializeOwned;
@@ -7,11 +8,6 @@ use std::future::Future;
 use std::io;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
-/// 签名 trait
-pub trait ParamsDigest: Send + Sync {
-    fn digest(&self, query: &[(String, String)]) -> Result<String, HttpError>;
-}
 
 #[derive(Clone)]
 pub struct ResilientHttpClient {
