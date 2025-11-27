@@ -35,10 +35,11 @@ pub struct Filter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RateLimit {
-    pub limit: String,
+    pub limit: i32,
     pub interval: String,
-    pub interval_num: String,
+    pub interval_num: i32,
     pub rate_limit_type: String,
 }
 
@@ -53,25 +54,52 @@ impl std::fmt::Display for RateLimit {
 }
 
 /// Rust equivalent of Java `Symbol`.
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// #[serde(rename_all = "camelCase")]
+// pub struct Symbol {
+//     pub quote_asset: String,
+//     pub iceberg_allowed: String,
+//     pub oco_allowed: String,
+//     pub is_margin_trading_allowed: String,
+//     pub is_spot_trading_allowed: String,
+//     pub base_asset: String,
+//     pub symbol: String,
+//     pub status: String,
+//     pub contract_type: String,
+//     pub quote_precision: String,
+//     pub quote_asset_precision: String,
+//     pub base_asset_precision: String,
+//     pub delivery_date: Option<i64>,
+//     pub onboard_date: Option<i64>,
+//     pub order_types: Vec<String>,
+//     pub filters: Vec<Filter>,
+//     pub permissions: Vec<String>,
+// }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Symbol {
-    pub quote_asset: String,
-    pub iceberg_allowed: String,
-    pub oco_allowed: String,
-    pub is_margin_trading_allowed: String,
-    pub is_spot_trading_allowed: String,
-    pub base_asset: String,
     pub symbol: String,
     pub status: String,
-    pub contract_type: String,
-    pub quote_precision: String,
-    pub quote_asset_precision: String,
-    pub base_asset_precision: String,
+    pub base_asset: String,
+    pub quote_asset: String,
+
+    pub base_asset_precision: u8,  // 数字
+    pub quote_asset_precision: u8, // 数字
+    pub quote_precision: u8,       // 数字
+
+    pub iceberg_allowed: bool,
+    pub oco_allowed: bool,
+    pub is_margin_trading_allowed: bool,
+    pub is_spot_trading_allowed: bool,
+
+    pub contract_type: Option<String>,
     pub delivery_date: Option<i64>,
     pub onboard_date: Option<i64>,
+
     pub order_types: Vec<String>,
     pub filters: Vec<Filter>,
-    pub permissions: Vec<String>,
+    pub permissions: Option<Vec<String>>,
 }
 
 impl std::fmt::Display for Symbol {
@@ -81,6 +109,7 @@ impl std::fmt::Display for Symbol {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BinanceExchangeInfo {
     pub timezone: String,
 
@@ -93,5 +122,5 @@ pub struct BinanceExchangeInfo {
 
     pub exchange_filters: Vec<String>,
 
-    pub permissions: Vec<String>,
+    pub permissions: Option<Vec<String>>,
 }

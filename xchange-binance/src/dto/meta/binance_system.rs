@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinanceSystemStatus {
     /// 0: normal, 1: system maintenance
-    pub status: String,
+    pub status: i32,
 
     /// 描述信息：normal / system maintenance
     pub msg: String,

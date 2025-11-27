@@ -1,31 +1,32 @@
-#![allow(custom_attributes)]
-
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
-use crate::dto::BinanceError;
-use async_trait::async_trait;
+use retrofit_rs::{Retrofit, RetrofitError, api, get};
 
 /// Binance API Trait 抽象
-#[async_trait]
-pub trait Binance {
+#[api("https://api.binance.com")]
+pub trait BinancePub {
     /// Fetch system status
-    async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError>;
+    #[get("/sapi/v1/system/status")]
+    async fn system_status(&self) -> Result<BinanceSystemStatus, RetrofitError>;
 
     /// Ping
-    async fn ping(&self) -> Result<serde_json::Value, BinanceError>;
+    #[get("/api/v3/ping")]
+    async fn ping(&self) -> Result<serde_json::Value, RetrofitError>;
 
     /// Get server time
-    async fn time(&self) -> Result<BinanceTime, BinanceError>;
+    #[get("/api/v3/time")]
+    async fn time(&self) -> Result<BinanceTime, RetrofitError>;
 
     /// Exchange info
-    async fn exchange_info(&self) -> Result<BinanceExchangeInfo, BinanceError>;
+    #[get("/api/v3/exchangeInfo")]
+    async fn exchange_info(&self) -> Result<BinanceExchangeInfo, RetrofitError>;
     //
     // /// Depth / orderbook
     // async fn depth(
     //     &self,
     //     symbol: &str,
     //     limit: Option<u32>,
-    // ) -> Result<BinanceOrderbook, BinanceError>;
+    // ) -> Result<BinanceOrderbook, RetrofitError>;
     //
     // /// Aggregate trades
     // async fn agg_trades(
@@ -35,30 +36,37 @@ pub trait Binance {
     //     start_time: Option<u64>,
     //     end_time: Option<u64>,
     //     limit: Option<u32>,
-    // ) -> Result<Vec<BinanceAggTrades>, BinanceError>;
+    // ) -> Result<Vec<BinanceAggTrades>, RetrofitError>;
     //
-    /// Klines / candlesticks
-    async fn klines(
-        &self,
-        symbol: &str,
-        interval: &str,
-        limit: Option<u32>,
-        start_time: Option<u64>,
-        end_time: Option<u64>,
-    ) -> Result<Vec<Vec<serde_json::Value>>, BinanceError>;
+    // Klines / candlesticks
+    // #[get("/api/v3/klines")]
+    // async fn klines(
+    //     &self,
+    //     #[query] symbol: &str,
+    //     #[query] interval: &str,
+    //     #[query] limit: Option<u32>,
+    //     #[query(name = "startTime")] start_time: Option<u64>,
+    //     #[query(name = "endTime")] end_time: Option<u64>,
+    // ) -> Result<Vec<Vec<serde_json::Value>>, RetrofitError>;
     //
     // /// 24h ticker for all symbols
-    // async fn ticker_24h_all(&self) -> Result<Vec<BinanceTicker24h>, BinanceError>;
+    // async fn ticker_24h_all(&self) -> Result<Vec<BinanceTicker24h>, RetrofitError>;
     //
     // /// 24h ticker for a symbol
-    // async fn ticker_24h(&self, symbol: &str) -> Result<BinanceTicker24h, BinanceError>;
+    // async fn ticker_24h(&self, symbol: &str) -> Result<BinanceTicker24h, RetrofitError>;
     //
     // /// Latest price for a symbol
-    // async fn ticker_price(&self, symbol: &str) -> Result<BinancePrice, BinanceError>;
+    // async fn ticker_price(&self, symbol: &str) -> Result<BinancePrice, RetrofitError>;
     //
     // /// Latest price for all symbols
-    // async fn ticker_all_prices(&self) -> Result<Vec<BinancePrice>, BinanceError>;
+    // async fn ticker_all_prices(&self) -> Result<Vec<BinancePrice>, RetrofitError>;
     //
     // /// Best price/qty on the order book for all symbols
-    // async fn ticker_all_book_tickers(&self) -> Result<Vec<BinancePriceQuantity>, BinanceError>;
+    // async fn ticker_all_book_tickers(&self) -> Result<Vec<BinancePriceQuantity>, RetrofitError>;
+}
+
+impl BinancePubClient {
+    pub fn retrofit(&self) -> &Retrofit {
+        &self.client
+    }
 }

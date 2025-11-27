@@ -41,6 +41,9 @@ pub enum BinanceError {
 
     #[error("Unexpected HTTP status {0}: {1}")]
     HttpStatus(reqwest::StatusCode, String),
+
+    #[error("Retrofit error: {0}")]
+    Retrofit(#[from] retrofit_rs::RetrofitError),
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。
@@ -65,7 +68,7 @@ pub struct BinanceException {
     pub headers: Option<HashMap<String, Vec<String>>>,
 }
 
-impl std::fmt::Display for BinanceException {
+impl fmt::Display for BinanceException {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Binance error {}: {}", self.code, self.msg)
     }
