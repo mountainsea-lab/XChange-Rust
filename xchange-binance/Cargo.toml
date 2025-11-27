@@ -8,6 +8,8 @@ repository.workspace = true
 
 [dependencies]
 xchange-core = {workspace = true }
+xchange-macros = {workspace = true }
+
 thiserror = {workspace = true }
 serde = { workspace = true, features = ["derive"] }
 reqwest = {workspace = true, features = ["rustls-tls"]  }

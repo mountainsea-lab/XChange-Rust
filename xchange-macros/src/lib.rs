@@ -4,74 +4,57 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    Attribute, FnArg, Ident, ItemFn, Lit, Pat, PatIdent, PathArguments, ReturnType, Type, TypePath,
-    parse_macro_input,
+    parse_macro_input, parse::{Parse, ParseStream}, punctuated::Punctuated,
+    token::Comma, Ident, ItemFn, LitStr, Expr, FnArg, Pat, PatIdent, PathArguments, Type, TypePath,
+    ReturnType,
 };
 
-/// Try to parse attribute macro arg as a string literal path: #[api_get("/path")]
-fn parse_path_from_attr_args(attr_args: TokenStream) -> Option<String> {
-    if attr_args.is_empty() {
-        return None;
-    }
-    let lit: Result<syn::LitStr, _> = syn::parse(attr_args);
-    if let Ok(s) = lit {
-        Some(s.value())
-    } else {
-        None
+/// Macro parameter role definitions
+#[derive(Debug)]
+enum ParamRole {
+    Query(Vec<Ident>),
+    Form(Vec<Ident>),
+    Json(Vec<Ident>),
+    Header(Vec<(String, Ident)>), // (header_name, param_name)
+}
+
+/// Parse each macro role entry
+struct RoleEntry {
+    role: Ident,
+    args: Punctuated<Ident, Comma>,
+}
+
+impl Parse for RoleEntry {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let role: Ident = input.parse()?;
+        let content;
+        let _ = syn::parenthesized!(content in input);
+        let args = Punctuated::parse_terminated(&content)?;
+        Ok(RoleEntry { role, args })
     }
 }
 
-fn option_inner(ty: &Type) -> Option<Type> {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if path.segments.len() == 1 && path.segments[0].ident == "Option" {
-            if let PathArguments::AngleBracketed(ab) = &path.segments[0].arguments {
-                if let Some(syn::GenericArgument::Type(inner)) = ab.args.first() {
-                    return Some(inner.clone());
-                }
-            }
+/// Parse macro input: path + role entries
+struct ApiMacroInput {
+    path: LitStr,
+    roles: Vec<RoleEntry>,
+}
+
+impl Parse for ApiMacroInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let path: LitStr = input.parse()?;
+        let mut roles = Vec::new();
+        while input.peek(syn::Token![,]) {
+            let _comma: syn::Token![,] = input.parse()?;
+            if input.is_empty() { break; }
+            let role: RoleEntry = input.parse()?;
+            roles.push(role);
         }
+        Ok(ApiMacroInput { path, roles })
     }
-    None
 }
 
-fn vec_inner(ty: &Type) -> Option<Type> {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if path.segments.len() == 1 && path.segments[0].ident == "Vec" {
-            if let PathArguments::AngleBracketed(ab) = &path.segments[0].arguments {
-                if let Some(syn::GenericArgument::Type(inner)) = ab.args.first() {
-                    return Some(inner.clone());
-                }
-            }
-        }
-    }
-    None
-}
-
-fn is_hashmap_string_string(ty: &Type) -> bool {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if path.segments.len() == 1 && path.segments[0].ident == "HashMap" {
-            if let PathArguments::AngleBracketed(ab) = &path.segments[0].arguments {
-                let mut args = ab.args.iter();
-                if let (Some(syn::GenericArgument::Type(k)), Some(syn::GenericArgument::Type(v))) =
-                    (args.next(), args.next())
-                {
-                    if let Type::Path(TypePath { path: kp, .. }) = k {
-                        if kp.segments.len() == 1 && kp.segments[0].ident == "String" {
-                            if let Type::Path(TypePath { path: vp, .. }) = v {
-                                if vp.segments.len() == 1 && vp.segments[0].ident == "String" {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    false
-}
-
-/// Extract the Ok type T from -> Result<T, E>, fall back to serde_json::Value
+/// Extract Ok type from Result<T,E> fallback to serde_json::Value
 fn extract_ok_type(rt: &ReturnType) -> proc_macro2::TokenStream {
     if let ReturnType::Type(_, boxed) = rt {
         if let Type::Path(TypePath { path, .. }) = boxed.as_ref() {
@@ -89,295 +72,65 @@ fn extract_ok_type(rt: &ReturnType) -> proc_macro2::TokenStream {
     quote! { serde_json::Value }
 }
 
-/// Parameter role discovered from attributes
-#[derive(Clone)]
-enum ParamRole {
-    Query,
-    Form,
-    Json,
-    Header(Option<String>),
-    Timestamp(Option<String>), // optional key name
-    Signature {
-        key: Option<String>,
-        header: Option<String>,
-    },
-    Auto,
-}
-
-/// Parse per-parameter attributes into ParamRole
-fn parse_param_role(attrs: &[Attribute]) -> Option<ParamRole> {
-    for attr in attrs {
-        if attr.path().is_ident("query") {
-            return Some(ParamRole::Query);
-        } else if attr.path().is_ident("form") {
-            return Some(ParamRole::Form);
-        } else if attr.path().is_ident("json") || attr.path().is_ident("body") {
-            return Some(ParamRole::Json);
-        } else if attr.path().is_ident("timestamp") {
-            let mut name: Option<String> = None;
-            let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
-                while !input.is_empty() {
-                    let ident: Ident = input.parse()?;
-                    let _: syn::Token![=] = input.parse()?;
-                    let lit: Lit = input.parse()?;
-                    if ident == "name" {
-                        if let Lit::Str(s) = lit {
-                            name = Some(s.value());
-                        }
-                    }
-                    if input.peek(syn::Token![,]) {
-                        let _: syn::Token![,] = input.parse()?;
-                    }
-                }
-                Ok(())
-            });
-            return Some(ParamRole::Timestamp(name));
-        } else if attr.path().is_ident("sig") || attr.path().is_ident("signature") {
-            let mut key: Option<String> = None;
-            let mut header: Option<String> = None;
-            let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
-                while !input.is_empty() {
-                    let ident: Ident = input.parse()?;
-                    let _: syn::Token![=] = input.parse()?;
-                    let lit: Lit = input.parse()?;
-                    if ident == "key" {
-                        if let Lit::Str(s) = lit {
-                            key = Some(s.value());
-                        }
-                    } else if ident == "header" {
-                        if let Lit::Str(s) = lit {
-                            header = Some(s.value());
-                        }
-                    }
-                    if input.peek(syn::Token![,]) {
-                        let _: syn::Token![,] = input.parse()?;
-                    }
-                }
-                Ok(())
-            });
-            return Some(ParamRole::Signature { key, header });
-        } else if attr.path().is_ident("header") {
-            let mut name: Option<String> = None;
-            let _ = attr.parse_args_with(|input: syn::parse::ParseStream| {
-                if !input.is_empty() {
-                    let lit: Lit = input.parse()?;
-                    if let Lit::Str(s) = lit {
-                        name = Some(s.value());
-                    }
-                }
-                Ok(())
-            });
-            return Some(ParamRole::Header(name));
-        }
-    }
-    None
-}
-
-/// whether the HTTP method allows a request body
-fn method_allows_body(method: &str) -> bool {
-    matches!(method, "POST" | "PUT" | "PATCH")
-}
-
-/// Core expansion function used for GET/POST/DELETE/PATCH
+/// Core expansion
 fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -> TokenStream {
-    let path_opt = parse_path_from_attr_args(attr_tokens);
-
+    let api_input = parse_macro_input!(attr_tokens as ApiMacroInput);
+    let path_literal = api_input.path.value();
     let input_fn = parse_macro_input!(input as ItemFn);
-
     let fn_vis = &input_fn.vis;
     let fn_sig = &input_fn.sig;
-    let fn_name = &fn_sig.ident;
-    let fn_asyncness = &fn_sig.asyncness;
-    let fn_inputs = &fn_sig.inputs;
     let fn_output = &fn_sig.output;
 
-    // decide response ok type
     let ok_ty = extract_ok_type(fn_output);
 
-    // collect parameter metadata
-    struct ParamInfo {
-        ident: Ident,
-        ty: Type,
-        role: ParamRole,
-        is_option: bool,
-        is_vec: bool,
-        is_hashmap_ss: bool,
-    }
+    // Build role maps
+    let mut query_params = Vec::new();
+    let mut form_params = Vec::new();
+    let mut json_params = Vec::new();
+    let mut header_params = Vec::new();
 
-    let mut params: Vec<ParamInfo> = Vec::new();
-
-    for arg in fn_inputs.iter() {
-        if let FnArg::Typed(pat_ty) = arg {
-            let ident = if let Pat::Ident(PatIdent { ident, .. }) = &*pat_ty.pat {
-                ident.clone()
-            } else {
-                panic!("proc-macro: only simple identifier parameters supported (no patterns)");
-            };
-            let ty = (*pat_ty.ty).clone();
-            let role = parse_param_role(&pat_ty.attrs).unwrap_or(ParamRole::Auto);
-            let is_option = option_inner(&ty).is_some();
-            let is_vec = vec_inner(&ty).is_some()
-                || option_inner(&ty)
-                    .and_then(|inner| vec_inner(&inner))
-                    .is_some();
-            let is_hashmap_ss = is_hashmap_string_string(&ty);
-
-            params.push(ParamInfo {
-                ident,
-                ty,
-                role,
-                is_option,
-                is_vec,
-                is_hashmap_ss,
-            });
+    for role_entry in api_input.roles {
+        let role_name = role_entry.role.to_string().to_lowercase();
+        match role_name.as_str() {
+            "query" => query_params.extend(role_entry.args.into_iter()),
+            "form" => form_params.extend(role_entry.args.into_iter()),
+            "json" => json_params.extend(role_entry.args.into_iter()),
+            "header" => {
+                for arg in role_entry.args {
+                    if let Some(name_str) = arg.to_string().strip_prefix("\"").and_then(|s| s.strip_suffix("\"")) {
+                        header_params.push((name_str.to_string(), arg.clone()));
+                    } else {
+                        header_params.push((arg.to_string(), arg.clone()));
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
-    // Generate token streams that will push into explicit_query/form/headers
+    // Generate push tokens for function parameters
     let mut push_query_tokens = Vec::new();
     let mut push_form_tokens = Vec::new();
     let mut push_header_tokens = Vec::new();
-    let mut json_body_ident: Option<Ident> = None;
-    let mut timestamp_param: Option<(Ident, String)> = None;
-    let mut signature_param: Option<(Ident, Option<String>, Option<String>)> = None;
 
-    for p in &params {
-        let name_str = p.ident.to_string();
-        let ident = &p.ident;
-        match &p.role {
-            ParamRole::Header(name_opt) => {
-                let header_key = if let Some(n) = name_opt {
-                    n.clone()
-                } else {
-                    name_str.clone()
-                };
-                if p.is_option {
-                    push_header_tokens.push(quote! {
-                        if let Some(v) = &#ident {
-                            explicit_headers.push((#header_key.to_string(), v.to_string()));
-                        }
-                    });
-                } else {
-                    push_header_tokens.push(quote! {
-                        explicit_headers.push((#header_key.to_string(), #ident.to_string()));
-                    });
-                }
+    for arg in fn_sig.inputs.iter() {
+        if let FnArg::Typed(pat_ty) = arg {
+            let ident = if let Pat::Ident(PatIdent { ident, .. }) = &*pat_ty.pat { ident } else { continue; };
+            if query_params.iter().any(|id| id == ident) {
+                push_query_tokens.push(quote! {
+                    explicit_query.push((stringify!(#ident).to_string(), #ident.to_string()));
+                });
             }
-            ParamRole::Query => {
-                if p.is_hashmap_ss {
-                    push_query_tokens.push(quote! {
-                        for (k, v) in #ident.iter() {
-                            explicit_query.push((k.clone(), v.clone()));
-                        }
-                    });
-                } else if p.is_vec {
-                    push_query_tokens.push(quote! {
-                        for v in #ident.iter() {
-                            explicit_query.push((#name_str.to_string(), v.to_string()));
-                        }
-                    });
-                } else if p.is_option {
-                    push_query_tokens.push(quote! {
-                        if let Some(v) = &#ident {
-                            explicit_query.push((#name_str.to_string(), v.to_string()));
-                        }
-                    });
-                } else {
-                    push_query_tokens.push(quote! {
-                        explicit_query.push((#name_str.to_string(), #ident.to_string()));
-                    });
-                }
+            if form_params.iter().any(|id| id == ident) {
+                push_form_tokens.push(quote! {
+                    explicit_form.push((stringify!(#ident).to_string(), #ident.to_string()));
+                });
             }
-            ParamRole::Form => {
-                if p.is_hashmap_ss {
-                    push_form_tokens.push(quote! {
-                        for (k, v) in #ident.iter() {
-                            explicit_form.push((k.clone(), v.clone()));
-                        }
-                    });
-                } else if p.is_vec {
-                    push_form_tokens.push(quote! {
-                        for v in #ident.iter() {
-                            explicit_form.push((#name_str.to_string(), v.to_string()));
-                        }
-                    });
-                } else if p.is_option {
-                    push_form_tokens.push(quote! {
-                        if let Some(v) = &#ident {
-                            explicit_form.push((#name_str.to_string(), v.to_string()));
-                        }
-                    });
-                } else {
-                    push_form_tokens.push(quote! {
-                        explicit_form.push((#name_str.to_string(), #ident.to_string()));
-                    });
-                }
-            }
-            ParamRole::Json => {
-                if json_body_ident.is_none() {
-                    json_body_ident = Some(ident.clone());
-                } else {
-                    // ignore extras
-                }
-            }
-            ParamRole::Timestamp(name_maybe) => {
-                let key = name_maybe
-                    .clone()
-                    .unwrap_or_else(|| "timestamp".to_string());
-                timestamp_param = Some((ident.clone(), key));
-            }
-            ParamRole::Signature { key, header } => {
-                signature_param = Some((ident.clone(), key.clone(), header.clone()));
-            }
-            ParamRole::Auto => {
-                if method_allows_body(method) {
-                    // default to form
-                    if p.is_hashmap_ss {
-                        push_form_tokens.push(quote! {
-                            for (k, v) in #ident.iter() {
-                                explicit_form.push((k.clone(), v.clone()));
-                            }
-                        });
-                    } else if p.is_vec {
-                        push_form_tokens.push(quote! {
-                            for v in #ident.iter() {
-                                explicit_form.push((#name_str.to_string(), v.to_string()));
-                            }
-                        });
-                    } else if p.is_option {
-                        push_form_tokens.push(quote! {
-                            if let Some(v) = &#ident {
-                                explicit_form.push((#name_str.to_string(), v.to_string()));
-                            }
-                        });
-                    } else {
-                        push_form_tokens.push(quote! {
-                            explicit_form.push((#name_str.to_string(), #ident.to_string()));
-                        });
-                    }
-                } else {
-                    // default to query
-                    if p.is_hashmap_ss {
-                        push_query_tokens.push(quote! {
-                            for (k, v) in #ident.iter() {
-                                explicit_query.push((k.clone(), v.clone()));
-                            }
-                        });
-                    } else if p.is_vec {
-                        push_query_tokens.push(quote! {
-                            for v in #ident.iter() {
-                                explicit_query.push((#name_str.to_string(), v.to_string()));
-                            }
-                        });
-                    } else if p.is_option {
-                        push_query_tokens.push(quote! {
-                            if let Some(v) = &#ident {
-                                explicit_query.push((#name_str.to_string(), v.to_string()));
-                            }
-                        });
-                    } else {
-                        push_query_tokens.push(quote! {
-                            explicit_query.push((#name_str.to_string(), #ident.to_string()));
+            if header_params.iter().any(|(_, id2)| id2 == ident) {
+                for (hname, id2) in &header_params {
+                    if id2 == ident {
+                        push_header_tokens.push(quote! {
+                            explicit_headers.push((#hname.to_string(), #ident.to_string()));
                         });
                     }
                 }
@@ -385,263 +138,58 @@ fn expand_api_core(method: &str, attr_tokens: TokenStream, input: TokenStream) -
         }
     }
 
-    // method token ident
     let method_ident = format_ident!("{}", method);
-    // ok type tokens
-    let ok_ty_tokens = ok_ty;
-    // path string
-    let path_literal = match path_opt {
-        Some(p) => p,
-        None => "/".to_string(),
-    };
 
-    // timestamp insertion code
-    let timestamp_insertion = if let Some((ref ts_ident, ref ts_key)) = timestamp_param {
-        quote! {
-            // timestamp factory
-            let ts_val = #ts_ident.create_value();
-            explicit_query.push((#ts_key.to_string(), ts_val.to_string()));
-        }
-    } else {
-        quote! {}
-    };
-
-    // signature handling: build canonical pairs and call signer.digest(&invocation)
-    let signature_handling = if let Some((ref signer_ident, ref key_opt, ref header_opt)) =
-        signature_param
-    {
-        let sig_key = key_opt
-            .as_ref()
-            .map(|s| s.clone())
-            .unwrap_or_else(|| "signature".to_string());
-        let header_name = header_opt.clone();
-        // header_name is Option<String>, quote! with it requires moving into tokens
-        if header_name.is_some() {
-            let header_name_lit = header_name.unwrap();
-            quote! {
-                // build canonical pairs for signing
-                let canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone());
-                let invocation = crate::client::RestInvocation {
-                    method: #method.to_string(),
-                    path: #path_literal.to_string(),
-                    query: canonical_pairs.clone(),
-                    headers: explicit_headers.clone(),
-                    body: None,
-                };
-                // call signer (assumed to implement digest(&RestInvocation) -> String)
-                let sig_val = #signer_ident.digest(&invocation);
-                explicit_headers.push((#header_name_lit.to_string(), sig_val));
-            }
-        } else {
-            quote! {
-                let canonical_pairs = crate::client::build_canonical_pairs(explicit_query.clone(), explicit_form.clone());
-                let invocation = crate::client::RestInvocation {
-                    method: #method.to_string(),
-                    path: #path_literal.to_string(),
-                    query: canonical_pairs.clone(),
-                    headers: explicit_headers.clone(),
-                    body: None,
-                };
-                let sig_val = #signer_ident.digest(&invocation);
-                explicit_query.push((#sig_key.to_string(), sig_val));
-            }
-        }
-    } else {
-        quote! {}
-    };
-
-    let json_body_setting = if let Some(ref body_ident) = json_body_ident {
-        quote! {
-            // serialize JSON body value
-            let body_val = serde_json::to_value(&#body_ident).map_err(crate::client::HttpError::Reqwest)?;
-            // later: req = req.json(&body_val);
-        }
-    } else {
-        quote! {}
-    };
-
-    // Build final generated function
     let gen_fun = quote! {
-        #fn_vis #fn_asyncness fn #fn_name(&self, #fn_inputs) #fn_output {
-            // url and client capture
+        #fn_vis #fn_sig {
             let url = format!("{}{}", self.base_url, #path_literal);
             let client_arc = self.client.clone();
 
-            // execute via ResilientHttpClient::execute which expects Arc<Self>.execute(|| async move { ... })
-            // we return the future from execute, so the outer function must be async (kept from original signature)
-            let fut = async move {
-                // build explicit collections based on parameters
-                let mut explicit_query: Vec<(String,String)> = Vec::new();
-                let mut explicit_form: Vec<(String,String)> = Vec::new();
-                let mut explicit_headers: Vec<(String,String)> = Vec::new();
+            let mut explicit_query: Vec<(String,String)> = Vec::new();
+            let mut explicit_form: Vec<(String,String)> = Vec::new();
+            let mut explicit_headers: Vec<(String,String)> = Vec::new();
 
-                #(#push_query_tokens)*
-                #(#push_form_tokens)*
-                #(#push_header_tokens)*
+            #(#push_query_tokens)*
+            #(#push_form_tokens)*
+            #(#push_header_tokens)*
 
-                #timestamp_insertion
-                #signature_handling
-
-                // perform HTTP request inside the resilient client's retry/ratelimit wrapper
-                let client_for_exec = client_arc.clone();
-                client_for_exec.clone().execute(move || {
-                    // closure given to execute: no args, returns a future
-                    let client_inner = client_arc.clone();
-                    let url_inner = url.clone();
-                    let mut explicit_query_inner = explicit_query.clone();
-                    let explicit_form_inner = explicit_form.clone();
-                    let explicit_headers_inner = explicit_headers.clone();
-                    async move {
-                        // build reqwest request using inner client (reqwest::Client)
-                        let mut req = client_inner.http.request(reqwest::Method::#method_ident, &url_inner);
-
-                        // apply query params
-                        for (k, v) in &explicit_query_inner {
-                            req = req.query(&[(k.as_str(), v.as_str())]);
-                        }
-                        // apply headers
-                        for (k, v) in &explicit_headers_inner {
-                            req = req.header(k.as_str(), v.as_str());
-                        }
-
-                        #json_body_setting
-
-                        // apply form if present and method allows body
-                        if !explicit_form_inner.is_empty() {
-                            // form requires ownership of pairs
-                            req = req.form(&explicit_form_inner);
-                        }
-
-                        // if we set a json body earlier, attach it
-                        #[allow(unused_mut)]
-                        let mut req = {
-                            #[allow(unused_variables)]
-                            {
-                                // if json body exists, set via req.json
-                                #[allow(unused_mut)]
-                                let r = req;
-                                // If a json body was prepared, attach it.
-                                // We used json_body_setting above to produce body_val when needed.
-                                // To avoid shadowing issues, check at compile expansion time whether json exists
-                                // and attach accordingly.
-                                #[allow(unused_braces)]
-                                {
-                                    // If macro produced body_val variable, compile will use it; otherwise this is a no-op.
-                                    #[allow(unused_variables)]
-                                    let r = {
-                                        // the following block will only compile if json_body_ident was present in macro expansion
-                                        #[allow(unused_assignments)]
-                                        {
-                                            // This uses an early-return style via conditional compile-time expansion;
-                                            // if no json body was generated, the body_val symbol is absent and this block is never used.
-                                            r
-                                        }
-                                    };
-                                    r
-                                }
-                            }
-                        };
-
-                        // send request
-                        let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
-                        if resp.status().is_success() {
-                            let parsed = resp.json::<#ok_ty_tokens>().await.map_err(crate::client::HttpError::Reqwest)?;
-                            Ok(parsed)
-                        } else {
-                            Err(crate::client::HttpError::Io(
-                                std::io::Error::new(
-                                    std::io::ErrorKind::Other,
-                                    format!("HTTP status {}", resp.status())
-                                )
-                            ))
-                        }
-                    }
-                }).await
-            };
-
-            // return the awaited future (outer fn keeps asyncness so this compiles into .await by caller)
-            futures::executor::block_on(fut)
-        }
-    };
-
-    // NOTE:
-    // The above uses futures::executor::block_on to produce a synchronous return in the generated function body
-    // only if the original function signature wasn't async. If the original function signature is async, the
-    // block_on should not be used. To be safe and preserve the original asyncness we detect it:
-    //
-    // But we captured fn_asyncness from the original signature and included it in the generated fn,
-    // so we need the body to `await` the execute fut rather than block_on. Replace the last lines accordingly.
-    //
-    // Re-generate final with proper await handling:
-
-    let gen_fun = {
-        // if original function was async, we should `.await` inside the body, otherwise return a future
-        // However earlier we kept fn_asyncness in the signature, so the function is async already
-        // So adjust body: call `.await` directly.
-        quote! {
-            #fn_vis #fn_asyncness fn #fn_name(&self, #fn_inputs) #fn_output {
-                let url = format!("{}{}", self.base_url, #path_literal);
-                let client_arc = self.client.clone();
-
+            self.client.execute(move || {
+                let client_inner = client_arc.clone();
+                let url_inner = url.clone();
                 async move {
-                    let mut explicit_query: Vec<(String,String)> = Vec::new();
-                    let mut explicit_form: Vec<(String,String)> = Vec::new();
-                    let mut explicit_headers: Vec<(String,String)> = Vec::new();
+                    let mut req = client_inner.http.request(reqwest::Method::#method_ident, &url_inner);
 
-                    #(#push_query_tokens)*
-                    #(#push_form_tokens)*
-                    #(#push_header_tokens)*
+                    for (k,v) in &explicit_query {
+                        req = req.query(&[(k.as_str(), v.as_str())]);
+                    }
+                    for (k,v) in &explicit_headers {
+                        req = req.header(k.as_str(), v.as_str());
+                    }
+                    if !explicit_form.is_empty() {
+                        req = req.form(&explicit_form);
+                    }
 
-                    #timestamp_insertion
-                    #signature_handling
-
-                    // execute request via resilient client
-                    let client_for_exec = client_arc.clone();
-                    client_for_exec.clone().execute(move || {
-                        let client_inner = client_arc.clone();
-                        let url_inner = url.clone();
-                        let explicit_query_inner = explicit_query.clone();
-                        let explicit_form_inner = explicit_form.clone();
-                        let explicit_headers_inner = explicit_headers.clone();
-                        async move {
-                            let mut req = client_inner.http.request(reqwest::Method::#method_ident, &url_inner);
-
-                            for (k, v) in &explicit_query_inner {
-                                req = req.query(&[(k.as_str(), v.as_str())]);
-                            }
-                            for (k, v) in &explicit_headers_inner {
-                                req = req.header(k.as_str(), v.as_str());
-                            }
-
-                            #json_body_setting
-
-                            if !explicit_form_inner.is_empty() {
-                                req = req.form(&explicit_form_inner);
-                            }
-
-                            let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
-                            if resp.status().is_success() {
-                                let parsed = resp.json::<#ok_ty_tokens>().await.map_err(crate::client::HttpError::Reqwest)?;
-                                Ok(parsed)
-                            } else {
-                                Err(crate::client::HttpError::Io(
-                                    std::io::Error::new(
-                                        std::io::ErrorKind::Other,
-                                        format!("HTTP status {}", resp.status())
-                                    )
-                                ))
-                            }
-                        }
-                    }).await
+                    let resp = req.send().await.map_err(crate::client::HttpError::Reqwest)?;
+                    if resp.status().is_success() {
+                        let parsed = resp.json::<#ok_ty>().await.map_err(crate::client::HttpError::Reqwest)?;
+                        Ok(parsed)
+                    } else {
+                        Err(crate::client::HttpError::Io(
+                            std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                format!("HTTP {}", resp.status())
+                            )
+                        ))
+                    }
                 }
-            }
+            }).await
         }
     };
 
     gen_fun.into()
 }
 
-/// Exported attribute macros
+/// Exported macros
 #[proc_macro_attribute]
 pub fn api_get(attr: TokenStream, item: TokenStream) -> TokenStream {
     expand_api_core("GET", attr, item)

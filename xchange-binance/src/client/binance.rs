@@ -1,6 +1,8 @@
-use crate::dto::BinanceError;
+#![allow(custom_attributes)]
+
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
+use crate::dto::BinanceError;
 use async_trait::async_trait;
 
 /// Binance API Trait 抽象

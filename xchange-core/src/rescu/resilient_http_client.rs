@@ -1,7 +1,6 @@
 use crate::client::{RateLimiter, RetryConfig};
 use crate::rescu::HttpError;
 use crate::rescu::params_digest::ParamsDigest;
-use hmac::Mac;
 use reqwest::{Client, Method, Proxy};
 use serde::de::DeserializeOwned;
 use std::future::Future;
