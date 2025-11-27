@@ -1,10 +1,11 @@
 use crate::client::{RateLimiter, RetryConfig};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub struct ResilienceRegistries {
     pub retry_configs: HashMap<String, RetryConfig>,
-    pub rate_limiters: HashMap<String, RateLimiter>,
+    pub rate_limiters: HashMap<String, Arc<RateLimiter>>,
 }
 
 impl ResilienceRegistries {
@@ -16,7 +17,7 @@ impl ResilienceRegistries {
             RetryConfig {
                 max_attempts: 3,
                 initial_delay: Duration::from_millis(50),
-                multiplier: 4,
+                multiplier: 4.0,
             },
         );
 
@@ -25,7 +26,7 @@ impl ResilienceRegistries {
             RetryConfig {
                 max_attempts: 1,
                 initial_delay: Duration::from_millis(50),
-                multiplier: 1,
+                multiplier: 1.0,
             },
         );
 
