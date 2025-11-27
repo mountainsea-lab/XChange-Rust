@@ -9,10 +9,11 @@ repository.workspace = true
 [dependencies]
 xchange-core = {workspace = true }
 
+tokio = { workspace = true, features = ["full"] }
 thiserror = {workspace = true }
 serde = { workspace = true, features = ["derive"] }
 reqwest = {workspace = true, features = ["rustls-tls"]  }
 serde_json = {workspace = true }
 chrono = {workspace = true, features = ["serde"]  }
 async-trait = {workspace = true }
-retrofit-rs = {workspace = true }
+retrofit-rs = {workspace = true,features = ["async"] }
