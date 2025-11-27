@@ -1,6 +1,6 @@
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
-use retrofit_rs::{RetrofitError, api, get};
+use retrofit_rs::{Retrofit, RetrofitError, api, get};
 
 /// Binance API Trait 抽象
 #[api("https://api.binance.com")]
@@ -63,4 +63,10 @@ pub trait BinancePub {
     //
     // /// Best price/qty on the order book for all symbols
     // async fn ticker_all_book_tickers(&self) -> Result<Vec<BinancePriceQuantity>, RetrofitError>;
+}
+
+impl BinancePubClient {
+    pub fn retrofit(&self) -> &Retrofit {
+        &self.client
+    }
 }

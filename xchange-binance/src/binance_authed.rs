@@ -1,4 +1,4 @@
-use retrofit_rs::{Body, Header, Query, RetrofitError, api, get, post};
+use retrofit_rs::{Body, Header, Query, Retrofit, RetrofitError, api, get, post};
 
 #[api("https://api.binance.com")]
 pub trait BinanceAuthenticated {
@@ -34,4 +34,10 @@ pub trait BinanceAuthenticated {
     ) -> Result<serde_json::Value, RetrofitError>;
 
     // DELETE, PUT 等方法同理
+}
+
+impl BinanceAuthenticatedClient {
+    pub fn retrofit(&self) -> &Retrofit {
+        &self.client
+    }
 }
