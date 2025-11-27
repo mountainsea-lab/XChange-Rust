@@ -1,5 +1,6 @@
 use retrofit_rs::RetrofitError;
-use xchange_binance::binance::BinancePub;
+use xchange_binance::client::binance::BinancePub;
+// use xchange_binance::client::binance_authed::BinanceAuthenticatedClient;
 use xchange_binance::client::BinanceClient;
 
 #[tokio::test]

@@ -1,7 +1,10 @@
-use crate::binance::BinancePubClient;
-use crate::binance_authed::BinanceAuthenticatedClient;
+use crate::client::binance::BinancePubClient;
+use crate::client::binance_authed::BinanceAuthenticatedClient;
 use retrofit_rs::async_client::interceptors::AuthInterceptor;
 use retrofit_rs::{Retrofit, RetrofitError};
+
+pub mod binance;
+pub mod binance_authed;
 
 pub struct BinanceClient {
     pub public: BinancePubClient,
