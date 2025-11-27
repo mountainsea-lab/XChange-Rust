@@ -1,5 +1,5 @@
 use crate::TimeUnit::Milliseconds;
-use crate::client::resilience_registries::ResilienceRegistries;
+use crate::client::ResilienceRegistries;
 use crate::dto::meta::exchange_metadata::ExchangeMetaData;
 use crate::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeError};
 use crate::exchange_specification::ExchangeSpecification;

@@ -2,17 +2,16 @@ pub mod client_config;
 mod exchange_rest_proxy_builder;
 pub mod resilience_registries;
 
-use crate::client::client_config::ClientConfig;
-use async_trait::async_trait;
 use futures::FutureExt;
 use futures::future::BoxFuture;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
 use tokio::time::sleep;
 
-/// Retry configuration
-#[derive(Clone, Debug)]
+/// ========================
+/// Retry Config
+/// ========================
+#[derive(Clone)]
 pub struct RetryConfig {
     pub max_attempts: usize,
     pub initial_delay: Duration,
@@ -21,149 +20,211 @@ pub struct RetryConfig {
 
 impl RetryConfig {
     pub fn delay_for_attempt(&self, attempt: usize) -> Duration {
-        self.initial_delay
-            .mul_f64(self.multiplier.powi(attempt as i32))
+        let factor = self.multiplier.powi(attempt as i32);
+        self.initial_delay.mul_f64(factor)
     }
 }
 
-/// Async rate limiter
-#[derive(Clone)]
+/// ========================
+/// RateLimiter
+/// ========================
+#[derive(Debug)]
 pub struct RateLimiter {
+    capacity: usize,
     semaphore: Arc<Semaphore>,
-    capacity: u32,
     refill_period: Duration,
 }
+
+#[derive(Debug)]
+pub enum RateLimiterError {
+    AcquireFailed,
+}
+
 impl RateLimiter {
-    /// 创建限流器
-    pub fn new(capacity: u32, refill_period: Duration) -> Arc<Self> {
-        let limiter = Arc::new(Self {
-            semaphore: Arc::new(Semaphore::new(capacity as usize)),
+    pub fn new(capacity: usize, refill_period: Duration) -> Self {
+        Self {
             capacity,
+            semaphore: Arc::new(Semaphore::new(capacity)),
             refill_period,
-        });
-
-        // 启动后台 refill
-        RateLimiter::start_refill(limiter.clone());
-        limiter
+        }
     }
 
-    /// 获取一个 permit
-    pub async fn acquire(&self) {
-        self.semaphore.acquire().await.unwrap().forget();
-    }
+    pub async fn acquire(&self) -> Result<RateLimiterPermit, RateLimiterError> {
+        let permit = self
+            .semaphore
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| RateLimiterError::AcquireFailed)?;
 
-    /// 后台 refill
-    fn start_refill(limiter: Arc<Self>) {
+        let sem_clone = self.semaphore.clone();
+        let period = self.refill_period;
+
         tokio::spawn(async move {
-            loop {
-                sleep(limiter.refill_period).await;
-                limiter.semaphore.add_permits(limiter.capacity as usize);
-            }
+            sleep(period).await;
+            sem_clone.add_permits(1);
         });
+
+        Ok(RateLimiterPermit { _permit: permit })
     }
 }
 
-/// ====================
-/// ResilientCall 封装
-/// ====================
+/// 用于保持 semaphore permit 生命周期
+pub struct RateLimiterPermit {
+    _permit: tokio::sync::OwnedSemaphorePermit,
+}
+
+/// ========================
+/// Resilience Registries
+/// ========================
+pub struct ResilienceRegistries {
+    pub retry_configs: HashMap<String, Arc<RetryConfig>>,
+    pub rate_limiters: HashMap<String, Arc<RateLimiter>>,
+}
+
+impl ResilienceRegistries {
+    pub const DEFAULT_RETRY: &'static str = "global";
+    pub const NON_IDEMPOTENT: &'static str = "non_idempotent";
+
+    pub fn new() -> Self {
+        let mut retry_configs = HashMap::new();
+        retry_configs.insert(
+            Self::DEFAULT_RETRY.into(),
+            Arc::new(RetryConfig {
+                max_attempts: 3,
+                initial_delay: Duration::from_millis(50),
+                multiplier: 2.0,
+            }),
+        );
+        retry_configs.insert(
+            Self::NON_IDEMPOTENT.into(),
+            Arc::new(RetryConfig {
+                max_attempts: 1,
+                initial_delay: Duration::from_millis(50),
+                multiplier: 1.0,
+            }),
+        );
+
+        let mut rate_limiters = HashMap::new();
+        rate_limiters.insert(
+            "global".into(),
+            Arc::new(RateLimiter::new(1200, Duration::from_secs(60))),
+        );
+
+        Self {
+            retry_configs,
+            rate_limiters,
+        }
+    }
+
+    pub fn get_retry(&self, name: &str) -> Option<Arc<RetryConfig>> {
+        self.retry_configs.get(name).cloned()
+    }
+
+    pub fn get_rate_limiter(&self, name: &str) -> Option<Arc<RateLimiter>> {
+        self.rate_limiters.get(name).cloned()
+    }
+}
+
+/// ========================
+/// ResilientCall Builder
+/// ========================
 pub struct ResilientCall<T> {
-    func: Arc<
+    func: Box<
         dyn Fn() -> BoxFuture<'static, Result<T, Box<dyn std::error::Error + Send + Sync>>>
             + Send
             + Sync,
     >,
-    retry_config: Option<RetryConfig>,
+    retry_cfg: Option<Arc<RetryConfig>>,
     rate_limiter: Option<Arc<RateLimiter>>,
 }
 
-impl<T: Send + 'static> ResilientCall<T> {
-    /// 构造一个新的 ResilientCall
+impl<T> ResilientCall<T>
+where
+    T: Send + 'static,
+{
     pub fn new<F, Fut>(func: F) -> Self
     where
         F: Fn() -> Fut + Send + Sync + 'static,
-        Fut: std::future::Future<Output = Result<T, Box<dyn std::error::Error + Send + Sync>>>
-            + Send
-            + 'static,
+        Fut: Future<Output = Result<T, Box<dyn std::error::Error + Send + Sync>>> + Send + 'static,
     {
         Self {
-            func: Arc::new(move || func().boxed()),
-            retry_config: None,
+            func: Box::new(move || func().boxed()),
+            retry_cfg: None,
             rate_limiter: None,
         }
     }
 
-    /// 添加 retry 配置
-    pub fn with_retry(mut self, config: RetryConfig) -> Self {
-        self.retry_config = Some(config);
+    pub fn with_retry(mut self, retry_cfg: Arc<RetryConfig>) -> Self {
+        self.retry_cfg = Some(retry_cfg);
         self
     }
 
-    /// 添加 rate limiter
     pub fn with_rate_limiter(mut self, limiter: Arc<RateLimiter>) -> Self {
         self.rate_limiter = Some(limiter);
         self
     }
 
-    /// 执行调用
     pub async fn call(&self) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
-        let retry_cfg = self.retry_config.clone();
-        let func = self.func.clone();
-        let limiter = self.rate_limiter.clone();
+        let mut attempt = 0;
 
-        let max_attempts = retry_cfg.as_ref().map(|c| c.max_attempts).unwrap_or(1);
-
-        let mut last_err: Option<Box<dyn std::error::Error + Send + Sync>> = None;
-
-        for attempt in 0..max_attempts {
-            if let Some(ref rl) = limiter {
-                rl.acquire().await;
+        loop {
+            if let Some(ref limiter) = self.rate_limiter {
+                let _permit = limiter.acquire().await;
             }
 
-            match func().await {
-                Ok(v) => return Ok(v),
-                Err(e) => last_err = Some(e),
+            let fut = (self.func)();
+            let result = fut.await;
+
+            if let Ok(val) = result {
+                return Ok(val);
             }
 
-            if let Some(cfg) = &retry_cfg {
-                if attempt + 1 < max_attempts {
-                    let delay = cfg.delay_for_attempt(attempt);
-                    sleep(delay).await;
+            attempt += 1;
+            if let Some(cfg) = &self.retry_cfg {
+                if attempt >= cfg.max_attempts {
+                    return result; // 超过最大尝试次数
                 }
+                let delay = cfg.delay_for_attempt(attempt);
+                sleep(delay).await;
+            } else {
+                return result; // 没有 retry 配置直接返回
             }
         }
-
-        Err(last_err.expect("ResilientCall called zero times"))
     }
 }
 
-pub trait ClientConfigCustomizer {
-    fn customize(&self, config: &mut ClientConfig);
-}
+/// ========================
+/// 使用示例：结合 BinanceClient
+/// ========================
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use tokio;
 
-pub trait Interceptor: Send + Sync {
-    fn intercept(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder;
-}
+    struct DummyClient;
+    impl DummyClient {
+        async fn ping(&self) -> Result<&'static str, Box<dyn std::error::Error + Send + Sync>> {
+            Ok("pong")
+        }
+    }
 
-#[async_trait]
-pub trait RestProxyFactory: Send + Sync {
-    async fn create_proxy(
-        &self,
-        base_url: String,
-        config: ClientConfig,
-        interceptors: Vec<Arc<dyn Interceptor>>,
-    ) -> Box<dyn std::any::Any + Send + Sync>;
-}
+    #[tokio::test]
+    async fn test_resilient_call() {
+        let registries = Arc::new(ResilienceRegistries::new());
+        let client = DummyClient;
 
-pub struct DefaultProxyFactory;
-#[async_trait]
-impl RestProxyFactory for DefaultProxyFactory {
-    async fn create_proxy(
-        &self,
-        base_url: String,
-        config: ClientConfig,
-        interceptors: Vec<Arc<dyn Interceptor>>,
-    ) -> Box<dyn std::any::Any + Send + Sync> {
-        // core 不知道具体交易所，返回 Arc<dyn Any>
-        unimplemented!("交易所模块需要 downcast");
+        let limiter = registries.get_rate_limiter("global").unwrap();
+        let retry_cfg = registries.get_retry("global").unwrap();
+
+        let result = ResilientCall::new(|| client.ping())
+            .with_rate_limiter(limiter)
+            .with_retry(retry_cfg)
+            .call()
+            .await
+            .unwrap();
+
+        assert_eq!(result, "pong");
     }
 }
