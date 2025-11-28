@@ -9,7 +9,7 @@ use tokio::time::sleep;
 /// ========================
 /// Retry Config
 /// ========================
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct RetryConfig {
     pub max_attempts: usize,
     pub initial_delay: Duration,
@@ -75,6 +75,7 @@ pub struct RateLimiterPermit {
 /// ========================
 /// Resilience Registries
 /// ========================
+#[derive(Debug)]
 pub struct ResilienceRegistries {
     pub retry_configs: HashMap<String, Arc<RetryConfig>>,
     pub rate_limiters: HashMap<String, Arc<RateLimiter>>,
@@ -115,11 +116,11 @@ impl ResilienceRegistries {
         }
     }
 
-    pub fn get_retry(&self, name: &str) -> Option<Arc<RetryConfig>> {
+    pub fn retry(&self, name: &str) -> Option<Arc<RetryConfig>> {
         self.retry_configs.get(name).cloned()
     }
 
-    pub fn get_rate_limiter(&self, name: &str) -> Option<Arc<RateLimiter>> {
+    pub fn rate_limiter(&self, name: &str) -> Option<Arc<RateLimiter>> {
         self.rate_limiters.get(name).cloned()
     }
 }

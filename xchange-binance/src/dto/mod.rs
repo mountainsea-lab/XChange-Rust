@@ -44,6 +44,15 @@ pub enum BinanceError {
 
     #[error("Retrofit error: {0}")]
     Retrofit(#[from] retrofit_rs::RetrofitError),
+
+    #[error("Time provider error: {0}")]
+    TimeProvider(#[source] Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("Retry config not found")]
+    RetryConfigNotFound,
+
+    #[error("Acquire rate limiter failed: {0}")]
+    AcquireRateLimiter(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。
@@ -69,7 +78,7 @@ pub struct BinanceException {
 }
 
 impl fmt::Display for BinanceException {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Binance error {}: {}", self.code, self.msg)
     }
 }
