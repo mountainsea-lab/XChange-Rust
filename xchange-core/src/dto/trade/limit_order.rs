@@ -145,7 +145,7 @@ impl LimitOrder {
         }
     }
 
-    pub fn get_limit_price(&self) -> Option<Decimal> {
+    pub fn limit_price(&self) -> Option<Decimal> {
         self.limit_price
     }
 

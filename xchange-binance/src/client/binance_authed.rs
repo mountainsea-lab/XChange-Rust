@@ -1,7 +1,7 @@
 use retrofit_rs::{Body, Header, Query, Retrofit, RetrofitError, api, get, post};
 
 #[api("https://api.binance.com")]
-pub trait BinanceAuthenticated {
+pub trait BinanceAuthed {
     // #[post("/api/v3/order")]
     // async fn new_order(
     //     &self,
@@ -36,7 +36,7 @@ pub trait BinanceAuthenticated {
     // DELETE, PUT 等方法同理
 }
 
-impl BinanceAuthenticatedClient {
+impl BinanceAuthedClient {
     pub fn retrofit(&self) -> &Retrofit {
         &self.client
     }

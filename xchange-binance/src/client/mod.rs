@@ -1,14 +1,19 @@
 use crate::client::binance::BinancePubClient;
-use crate::client::binance_authed::BinanceAuthenticatedClient;
+use crate::client::binance_authed::BinanceAuthedClient;
+use crate::client::binance_futures::BinanceFuturesAuthedClient;
+use crate::client::binance_futures::BinanceFuturesClient;
 use retrofit_rs::async_client::interceptors::AuthInterceptor;
 use retrofit_rs::{Retrofit, RetrofitError};
 
 pub mod binance;
 pub mod binance_authed;
+pub(crate) mod binance_futures;
 
 pub struct BinanceClient {
     pub public: BinancePubClient,
-    pub auth: Option<BinanceAuthenticatedClient>,
+    pub auth: Option<BinanceAuthedClient>,
+    pub futures: Option<BinanceFuturesClient>,
+    pub futures_authed: Option<BinanceFuturesAuthedClient>,
 }
 
 impl BinanceClient {
@@ -18,7 +23,12 @@ impl BinanceClient {
 
         let public = BinancePubClient::with_client(retrofit);
 
-        Ok(Self { public, auth: None })
+        Ok(Self {
+            public,
+            auth: None,
+            futures: None,
+            futures_authed: None,
+        })
     }
 
     /// 创建带鉴权客户端
@@ -29,11 +39,13 @@ impl BinanceClient {
             .build()?;
 
         let public = BinancePubClient::with_client(retrofit.clone());
-        let auth = BinanceAuthenticatedClient::with_client(retrofit);
+        let auth = BinanceAuthedClient::with_client(retrofit);
 
         Ok(Self {
             public,
             auth: Some(auth),
+            futures: None,
+            futures_authed: None,
         })
     }
 }

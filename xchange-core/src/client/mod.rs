@@ -1,7 +1,5 @@
 pub mod client_config;
 mod exchange_rest_proxy_builder;
-pub mod resilience_registries;
-
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use std::{collections::HashMap, sync::Arc, time::Duration};

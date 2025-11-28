@@ -72,3 +72,5 @@
 // // let digest = BinanceHmacDigest::create(Some(api_secret_base64)).unwrap();
 // // let query = vec![("symbol".into(), "BTCUSDT".into()), ("timestamp".into(), "123456789".into())];
 // // let signature = digest.digest_request("POST", &query, Some("{\"side\":\"BUY\"}"))?;
+
+mod binance_base_service;
