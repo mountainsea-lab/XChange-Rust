@@ -7,6 +7,25 @@ use url::form_urlencoded;
 
 use crate::rescu::HttpError;
 
+/// ParamsDigest trait for signing requests
+pub trait ParamsDigest: Send + Sync {
+    /// Generate a signature for an API request
+    ///
+    /// # Arguments
+    /// - `method`: HTTP method, e.g., "GET", "POST", "DELETE"
+    /// - `query`: key/value query parameters
+    /// - `body`: optional POST body
+    ///
+    /// # Returns
+    /// - Ok(signature) or Err(HttpError)
+    fn digest_params(
+        &self,
+        method: &str,
+        query: &[(String, String)],
+        body: Option<&str>,
+    ) -> Result<String, HttpError>;
+}
+
 /// -------------------------
 /// 签名算法枚举
 /// -------------------------

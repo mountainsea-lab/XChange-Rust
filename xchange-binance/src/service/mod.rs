@@ -2,7 +2,6 @@
 // use std::sync::Arc;
 // use xchange_core::rescu::HttpError;
 // use xchange_core::rescu::params_digest::{BaseParamsDigest, HmacAlgorithm, ParamsDigest};
-// use xchange_core::rescu::resilient_http_client::RequestBuilder;
 //
 // /// -------------------------
 // /// BinanceHmacDigest
@@ -72,5 +71,5 @@
 // // let digest = BinanceHmacDigest::create(Some(api_secret_base64)).unwrap();
 // // let query = vec![("symbol".into(), "BTCUSDT".into()), ("timestamp".into(), "123456789".into())];
 // // let signature = digest.digest_request("POST", &query, Some("{\"side\":\"BUY\"}"))?;
-
-mod binance_base_service;
+//
+// mod binance_base_service;
