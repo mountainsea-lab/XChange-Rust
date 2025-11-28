@@ -30,7 +30,8 @@ reqwest = "0.12.24"
 tracing = "0.1.41"
 
 retrofit-rs = "0.2.0"
-
+url = "2.5.7"
+form_urlencoded = "1.2.2"
 
 hmac = "0.12.1"
 sha2 = "0.10.9"
