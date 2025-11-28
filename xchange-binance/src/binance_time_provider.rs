@@ -3,6 +3,8 @@ use crate::dto::meta::binance_system::BinanceTime;
 use futures::future::FutureExt;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use tracing::trace;
+use xchange_core::ValueFactory;
 use xchange_core::client::{ResilienceRegistries, ResilientCall};
 use xchange_core::exchange_specification::ResilienceSpecification;
 
@@ -27,6 +29,20 @@ impl BinanceTimeProvider {
         }
     }
 
+    /// 对应 Java createValue()，返回当前系统时间毫秒
+    pub fn create_value(&self) -> Result<i64, BinanceError> {
+        let duration = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|e| BinanceError::TimeProvider(Box::new(e)))?;
+        Ok(duration.as_millis() as i64)
+    }
+
+    /// 清空 delta，强制下一次刷新
+    pub fn clear_delta_server_time(&mut self) {
+        self.delta_server_time = None;
+        self.delta_server_time_expire = None;
+    }
+
     /// 异步获取服务器时间并缓存 delta
     pub async fn delta_server_time<F, Fut>(&mut self, fetch: F) -> Result<i64, BinanceError>
     where
@@ -48,15 +64,22 @@ impl BinanceTimeProvider {
         let binance_time = self.binance_time(fetch).await?;
         let server_time_millis = binance_time.server_time;
 
+        let system_millis = now
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
         // 缓存 10 分钟
-        self.delta_server_time = Some(
-            server_time_millis
-                - now
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as i64,
-        );
+        self.delta_server_time = Some(server_time_millis - system_millis);
         self.delta_server_time_expire = Some(now + Duration::from_secs(600));
+
+        // trace log
+        trace!(
+            "delta_server_time updated: server={} system={} delta={}",
+            server_time_millis,
+            system_millis,
+            self.delta_server_time.unwrap()
+        );
 
         Ok(server_time_millis)
     }
@@ -95,5 +118,11 @@ impl BinanceTimeProvider {
         }
 
         call.call().await.map_err(|e| BinanceError::TimeProvider(e))
+    }
+}
+
+impl ValueFactory<u64> for BinanceTimeProvider {
+    fn create(&self) -> u64 {
+        self.create()
     }
 }
