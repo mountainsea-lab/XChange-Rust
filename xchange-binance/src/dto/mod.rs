@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use thiserror::Error;
+use xchange_core::rescu::params_digest::DigestError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExchangeType {
@@ -53,6 +54,9 @@ pub enum BinanceError {
 
     #[error("Acquire rate limiter failed: {0}")]
     AcquireRateLimiter(#[source] Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("Digest error: {0}")]
+    Digest(#[from] DigestError),
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。
