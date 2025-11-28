@@ -48,13 +48,13 @@ pub trait Exchange: Send + Sync {
 
 /// ----------------- BaseExchange -----------------
 pub struct BaseExchange {
-    spec: Arc<ExchangeSpecification>,
-    meta_data: Arc<ExchangeMetaData>,
-    nonce_factory: Arc<TimeNonce>,
+    pub spec: Arc<ExchangeSpecification>,
+    pub meta_data: Arc<ExchangeMetaData>,
+    pub nonce_factory: Arc<TimeNonce>,
 
-    market_service: Option<Arc<dyn MarketDataService + Send + Sync>>,
-    trade_service: Option<Arc<dyn TradeService + Send + Sync>>,
-    account_service: Option<Arc<dyn AccountService + Send + Sync>>,
+    pub market_service: Option<Arc<dyn MarketDataService + Send + Sync>>,
+    pub trade_service: Option<Arc<dyn TradeService + Send + Sync>>,
+    pub account_service: Option<Arc<dyn AccountService + Send + Sync>>,
 }
 
 impl BaseExchange {

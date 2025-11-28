@@ -3,8 +3,6 @@ use std::time::SystemTimeError;
 use std::{fmt, io};
 
 pub mod params_digest;
-pub mod resilient_http_client;
-
 #[derive(Debug)]
 pub enum HttpError {
     Reqwest(reqwest::Error),

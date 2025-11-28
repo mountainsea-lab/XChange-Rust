@@ -57,6 +57,9 @@ pub enum BinanceError {
 
     #[error("Digest error: {0}")]
     Digest(#[from] DigestError),
+
+    #[error("Service Not Initialized: {0}")]
+    ServiceNotInitialized(String),
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。
