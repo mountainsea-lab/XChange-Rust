@@ -37,10 +37,19 @@ impl TimeNonce {
             }
         }
     }
+    // pub fn boxed(self) -> Arc<dyn ValueFactory<u64> + Send + Sync> {
+    //     Arc::new(self)
+    // }
 }
 
 // 直接在 Arc<TimeNonce> 上实现 trait，方便共享
 impl ValueFactory<u64> for Arc<TimeNonce> {
+    fn create(&self) -> u64 {
+        self.next()
+    }
+}
+
+impl ValueFactory<u64> for TimeNonce {
     fn create(&self) -> u64 {
         self.next()
     }

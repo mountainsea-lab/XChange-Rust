@@ -1,4 +1,4 @@
-use serde_json::Value;
+use crate::exchange::ExchangeType;
 use std::collections::HashMap;
 
 /// Configuration for resilience behavior of an exchange (retry and rate limiting).
@@ -58,7 +58,8 @@ pub struct ExchangeSpecification {
     pub resilience: ResilienceSpecification,
     pub meta_data_json_file_override: Option<String>,
     pub should_load_remote_meta_data: bool,
-    pub exchange_specific_parameters: HashMap<String, Value>,
+    pub exchange_specific_parameters: HashMap<String, ExchangeType>,
+    pub use_sandbox: bool,
 }
 
 impl ExchangeSpecification {
@@ -66,7 +67,7 @@ impl ExchangeSpecification {
         ExchangeSpecificationBuilder::default()
     }
 
-    pub fn get_parameter(&self, key: &str) -> Option<&Value> {
+    pub fn get_parameter(&self, key: &str) -> Option<&ExchangeType> {
         self.exchange_specific_parameters.get(key)
     }
 
@@ -124,7 +125,7 @@ pub struct ExchangeSpecificationBuilder {
     resilience: Option<ResilienceSpecification>,
     meta_data_json_file_override: Option<String>,
     should_load_remote_meta_data: Option<bool>,
-    exchange_specific_parameters: HashMap<String, Value>,
+    exchange_specific_parameters: HashMap<String, ExchangeType>,
 }
 
 impl Default for ExchangeSpecificationBuilder {
@@ -239,34 +240,16 @@ impl ExchangeSpecificationBuilder {
         self
     }
 
-    pub fn exchange_specific_parameter(mut self, key: impl Into<String>, value: Value) -> Self {
+    pub fn exchange_specific_parameter(
+        mut self,
+        key: impl Into<String>,
+        value: ExchangeType,
+    ) -> Self {
         self.exchange_specific_parameters.insert(key.into(), value);
         self
     }
 
     pub fn build(self) -> ExchangeSpecification {
-        // ExchangeSpecification {
-        //     exchange_name: self.exchange_name,
-        //     exchange_description: self.exchange_description,
-        //     user_name: self.user_name,
-        //     password: self.password,
-        //     secret_key: self.secret_key,
-        //     api_key: self.api_key,
-        //     ssl_uri: self.ssl_uri,
-        //     plain_text_uri: self.plain_text_uri,
-        //     override_websocket_api_uri: self.override_websocket_api_uri,
-        //     host: self.host,
-        //     port: self.port.unwrap_or(80),
-        //     proxy_host: self.proxy_host,
-        //     proxy_port: self.proxy_port,
-        //     http_conn_timeout: self.http_conn_timeout.unwrap_or(0),
-        //     http_read_timeout: self.http_read_timeout.unwrap_or(0),
-        //     resilience: self.resilience.unwrap_or_default(),
-        //     meta_data_json_file_override: self.meta_data_json_file_override,
-        //     should_load_remote_meta_data: self.should_load_remote_meta_data.unwrap_or(true),
-        //     exchange_specific_parameters: self.exchange_specific_parameters,
-        // }
-
         ExchangeSpecification {
             port: self.port.unwrap_or(80),
             http_conn_timeout: self.http_conn_timeout.unwrap_or(10_000),
@@ -287,6 +270,7 @@ impl ExchangeSpecificationBuilder {
             proxy_port: self.proxy_port,
             exchange_specific_parameters: self.exchange_specific_parameters,
             meta_data_json_file_override: self.meta_data_json_file_override,
+            use_sandbox: false,
         }
     }
 }

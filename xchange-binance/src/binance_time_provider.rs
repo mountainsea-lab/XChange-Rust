@@ -123,6 +123,8 @@ impl BinanceTimeProvider {
 
 impl ValueFactory<u64> for BinanceTimeProvider {
     fn create(&self) -> u64 {
-        self.create()
+        self.create_value()
+            .map(|v| v.max(0) as u64) // i64 转 u64，如果负数则取 0
+            .unwrap_or(0)
     }
 }

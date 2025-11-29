@@ -10,6 +10,7 @@ repository.workspace = true
 xchange-core = {workspace = true }
 
 tokio = { workspace = true, features = ["full"] }
+parking_lot = {workspace = true }
 thiserror = {workspace = true }
 serde = { workspace = true, features = ["derive"] }
 reqwest = {workspace = true, features = ["rustls-tls"]  }
