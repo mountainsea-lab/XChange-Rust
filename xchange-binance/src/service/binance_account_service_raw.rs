@@ -1,14 +1,26 @@
+use crate::binance_exchange::BinanceExchange;
+use crate::dto::BinanceError;
 use crate::dto::account::binance_currency_info::BinanceCurrencyInfo;
 use crate::service::binance_base_service::BinanceBaseService;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use xchange_core::client::ResilienceRegistries;
 
 pub struct BinanceAccountServiceRaw {
     pub base: Arc<BinanceBaseService>,
     // 对应 currencyInfos 缓存和锁
     currency_infos: RwLock<Option<Vec<BinanceCurrencyInfo>>>,
 }
-//
+
+impl BinanceAccountServiceRaw {
+    pub fn new(exchange: Arc<BinanceExchange>) -> Result<Self, BinanceError> {
+        let base = BinanceBaseService::new(exchange)?;
+        Ok(Self {
+            base: Arc::new(base),
+            currency_infos: RwLock::new(None),
+        })
+    }
+}
 // impl BinanceAccountServiceRaw {
 //     pub fn new(base: Arc<BinanceBaseService>) -> Self {
 //         Self {
