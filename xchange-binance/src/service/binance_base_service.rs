@@ -3,8 +3,10 @@ use crate::binance_exchange::{
 };
 use crate::client::BinanceClient;
 use crate::dto::BinanceError;
+use crate::dto::meta::binance_system::BinanceSystemStatus;
 use crate::service::{BinanceEd25519Digest, BinanceHmacDigest};
 use std::sync::Arc;
+use xchange_core::ValueFactory;
 use xchange_core::exchange::ExchangeType;
 use xchange_core::exchange_specification::ExchangeParam;
 use xchange_core::rescu::params_digest::ParamsDigest;
@@ -119,6 +121,19 @@ impl BinanceBaseService {
                 "recvWindow must be a number or string".into(),
             )),
         }
+    }
+
+    /// 获取时间戳工厂
+    pub fn timestamp_factory(&self) -> Arc<dyn ValueFactory<u64> + Send + Sync> {
+        self.exchange.timestamp_provider.clone()
+    }
+
+    /// 获取系统状态
+    pub async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError> {
+        // decorate_api_call 模拟 Java 的 decorateApiCall
+        let client = self.client.clone();
+        // client.system_status().await
+        todo!()
     }
 }
 
