@@ -1,3 +1,4 @@
+pub mod account;
 pub mod meta;
 
 use serde::Deserialize;

@@ -123,12 +123,10 @@ impl BinanceBaseService {
         }
     }
 
-    /// 获取时间戳工厂
     pub fn timestamp_factory(&self) -> Arc<dyn ValueFactory<u64> + Send + Sync> {
         self.exchange.timestamp_provider.clone()
     }
 
-    /// 获取系统状态
     pub async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError> {
         // decorate_api_call 模拟 Java 的 decorateApiCall
         let client = self.client.clone();
