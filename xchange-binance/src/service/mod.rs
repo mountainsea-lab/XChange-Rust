@@ -1,4 +1,6 @@
 use crate::dto::BinanceError;
+use base64::{Engine as _, engine::general_purpose};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use std::sync::Arc;
 use xchange_core::rescu::HttpError;
 use xchange_core::rescu::params_digest::{BaseParamsDigest, HmacAlgorithm, ParamsDigest};
@@ -11,9 +13,9 @@ pub struct BinanceHmacDigest {
 }
 
 impl BinanceHmacDigest {
-    pub fn new(secret_base64: &str) -> Result<Arc<Self>, BinanceError> {
+    pub fn new(secret_base64: &str) -> Result<Self, BinanceError> {
         let base = BaseParamsDigest::new(secret_base64, HmacAlgorithm::Sha256)?;
-        Ok(Arc::new(Self { inner: base }))
+        Ok(Self { inner: base })
     }
 
     /// 构建交易所特定输入字符串
@@ -65,9 +67,69 @@ impl ParamsDigest for BinanceHmacDigest {
     }
 }
 
-// ===================== 使用示例 =====================
-// let digest = BinanceHmacDigest::create(Some(api_secret_base64)).unwrap();
-// let query = vec![("symbol".into(), "BTCUSDT".into()), ("timestamp".into(), "123456789".into())];
-// let signature = digest.digest_request("POST", &query, Some("{\"side\":\"BUY\"}"))?;
+pub struct BinanceEd25519Digest {
+    signing_key: Arc<SigningKey>,
+    verifying_key: Arc<VerifyingKey>,
+}
+
+impl BinanceEd25519Digest {
+    pub fn new(secret_key_base64: &str) -> Result<Self, BinanceError> {
+        // let decoded = general_purpose::STANDARD
+        //     .decode(secret_key_base64)
+        //     .map_err(|e| BinanceError::InvalidKey(format!("Base64 decode error: {}", e)))?;
+        //
+        // // 从 bytes 构建 SigningKey
+        // let signing_key = SigningKey::from_bytes(&decoded)
+        //     .map_err(|e| BinanceError::InvalidKey(format!("SigningKey parse error: {}", e)))?;
+        let decoded = general_purpose::STANDARD
+            .decode(secret_key_base64)
+            .map_err(|e| BinanceError::InvalidKey(format!("Base64 decode error: {}", e)))?;
+
+        // 确保长度是 32
+        let secret_bytes: [u8; 32] = decoded
+            .try_into()
+            .map_err(|_| BinanceError::InvalidKey("Secret key must be 32 bytes".to_string()))?;
+
+        let signing_key = SigningKey::from_bytes(&secret_bytes);
+        let verifying_key = VerifyingKey::from(&signing_key);
+
+        Ok(Self {
+            signing_key: Arc::new(signing_key),
+            verifying_key: Arc::new(verifying_key),
+        })
+    }
+
+    fn build_input_string(method: &str, query: &[(String, String)], body: Option<&str>) -> String {
+        let query_str = query
+            .iter()
+            .filter(|(k, _)| k != "signature")
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<_>>()
+            .join("&");
+
+        match method.to_ascii_uppercase().as_str() {
+            "GET" | "DELETE" => query_str,
+            "POST" | "PUT" => query_str + body.unwrap_or(""),
+            _ => query_str,
+        }
+    }
+
+    fn sign(&self, payload: &[u8]) -> String {
+        let signing_key: &SigningKey = &self.signing_key; // Arc<SigningKey> 也可 deref
+        let sig = signing_key.sign(payload);
+        general_purpose::STANDARD.encode(sig.to_bytes())
+    }
+}
+impl ParamsDigest for BinanceEd25519Digest {
+    fn digest_params(
+        &self,
+        method: &str,
+        query: &[(String, String)],
+        body: Option<&str>,
+    ) -> Result<String, HttpError> {
+        let input = Self::build_input_string(method, query, body);
+        Ok(self.sign(input.as_bytes()))
+    }
+}
 
 mod binance_base_service;

@@ -48,4 +48,20 @@ impl BinanceClient {
             futures_authed: None,
         })
     }
+
+    /// 单独构建 futures/inverse 客户端并 attach 到 self（在 Arc 之前调用）
+    /// - futures_url: FUTURES_URL or INVERSE_FUTURES_URL
+    pub fn new_authed(&mut self, futures_url: &str, api_key: &str) -> Result<(), RetrofitError> {
+        let fut_retrofit = Retrofit::builder()
+            .base_url(futures_url)
+            .add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", api_key))
+            .build()?;
+
+        let fut_pub = BinanceFuturesClient::with_client(fut_retrofit.clone());
+        let fut_auth = BinanceFuturesAuthedClient::with_client(fut_retrofit);
+
+        self.futures = Some(fut_pub);
+        self.futures_authed = Some(fut_auth);
+        Ok(())
+    }
 }
