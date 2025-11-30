@@ -74,13 +74,6 @@ pub struct BinanceEd25519Digest {
 
 impl BinanceEd25519Digest {
     pub fn new(secret_key_base64: &str) -> Result<Self, BinanceError> {
-        // let decoded = general_purpose::STANDARD
-        //     .decode(secret_key_base64)
-        //     .map_err(|e| BinanceError::InvalidKey(format!("Base64 decode error: {}", e)))?;
-        //
-        // // 从 bytes 构建 SigningKey
-        // let signing_key = SigningKey::from_bytes(&decoded)
-        //     .map_err(|e| BinanceError::InvalidKey(format!("SigningKey parse error: {}", e)))?;
         let decoded = general_purpose::STANDARD
             .decode(secret_key_base64)
             .map_err(|e| BinanceError::InvalidKey(format!("Base64 decode error: {}", e)))?;

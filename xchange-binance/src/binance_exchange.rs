@@ -6,7 +6,7 @@ use xchange_core::ValueFactory;
 use xchange_core::client::ResilienceRegistries;
 use xchange_core::dto::meta::exchange_metadata::ExchangeMetaData;
 use xchange_core::exchange::{BaseExchange, Exchange, ExchangeType};
-use xchange_core::exchange_specification::ExchangeSpecification;
+use xchange_core::exchange_specification::{ExchangeParam, ExchangeSpecification};
 use xchange_core::instrument::Instrument;
 use xchange_core::service::account::account_service::AccountService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
@@ -76,33 +76,35 @@ impl BinanceExchange {
     /// --------------------------
     /// 根据 ExchangeType / sandbox 调整 host/ssl_uri
     /// --------------------------
-    fn conclude_host_params(spec: &mut ExchangeSpecification) {
-        if let Some(exchange_type) = spec.exchange_specific_parameters.get(EXCHANGE_TYPE_KEY) {
-            let ssl_uri = match exchange_type {
-                ExchangeType::Spot => {
-                    if spec.use_sandbox {
-                        SANDBOX_SPOT_URL
-                    } else {
-                        SPOT_URL
+    pub fn conclude_host_params(spec: &mut ExchangeSpecification) {
+        if let Some(param) = spec.exchange_specific_parameters.get(EXCHANGE_TYPE_KEY) {
+            if let ExchangeParam::ExchangeType(exchange_type) = param {
+                let ssl_uri = match exchange_type {
+                    ExchangeType::Spot => {
+                        if spec.use_sandbox {
+                            SANDBOX_SPOT_URL
+                        } else {
+                            SPOT_URL
+                        }
                     }
-                }
-                ExchangeType::Futures => {
-                    if spec.use_sandbox {
-                        SANDBOX_FUTURES_URL
-                    } else {
-                        FUTURES_URL
+                    ExchangeType::Futures => {
+                        if spec.use_sandbox {
+                            SANDBOX_FUTURES_URL
+                        } else {
+                            FUTURES_URL
+                        }
                     }
-                }
-                ExchangeType::Inverse => {
-                    if spec.use_sandbox {
-                        SANDBOX_INVERSE_FUTURES_URL
-                    } else {
-                        INVERSE_FUTURES_URL
+                    ExchangeType::Inverse => {
+                        if spec.use_sandbox {
+                            SANDBOX_INVERSE_FUTURES_URL
+                        } else {
+                            INVERSE_FUTURES_URL
+                        }
                     }
-                }
-                ExchangeType::PortfolioMargin => PORTFOLIO_MARGIN_URL,
-            };
-            spec.ssl_uri = Some(ssl_uri.to_string());
+                    ExchangeType::PortfolioMargin => PORTFOLIO_MARGIN_URL,
+                };
+                spec.ssl_uri = Some(ssl_uri.to_string());
+            }
         }
     }
 
@@ -113,7 +115,8 @@ impl BinanceExchange {
         let spec = self.base.spec.read();
         matches!(
             spec.exchange_specific_parameters.get(EXCHANGE_TYPE_KEY),
-            Some(ExchangeType::Futures)
+            Some(ExchangeParam::ExchangeType(ExchangeType::Futures))
+                | Some(ExchangeParam::ExchangeType(ExchangeType::PortfolioMargin))
         )
     }
 
@@ -124,7 +127,7 @@ impl BinanceExchange {
         let spec = self.base.spec.read();
         matches!(
             spec.exchange_specific_parameters.get(EXCHANGE_TYPE_KEY),
-            Some(ExchangeType::PortfolioMargin)
+            Some(ExchangeParam::ExchangeType(ExchangeType::PortfolioMargin))
         )
     }
 

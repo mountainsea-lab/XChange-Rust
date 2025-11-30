@@ -43,6 +43,9 @@ pub enum BinanceError {
 
     #[error("Invalid Key: {0}")]
     InvalidKey(String),
+
+    #[error("Invalid Param: {0}")]
+    InvalidParam(String),
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。

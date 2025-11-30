@@ -37,6 +37,27 @@ impl ResilienceSpecification {
         self.rate_limiter_enabled
     }
 }
+
+#[derive(Clone, Debug)]
+pub enum ExchangeParam {
+    Number(i64),
+    Float(f64),
+    Boolean(bool),
+    String(String),
+    ExchangeType(ExchangeType), // 新增分支
+    Object(Box<HashMap<String, ExchangeParam>>),
+}
+
+impl ExchangeParam {
+    pub fn as_exchange_type(&self) -> Option<ExchangeType> {
+        if let ExchangeParam::ExchangeType(t) = self {
+            Some(t.clone())
+        } else {
+            None
+        }
+    }
+}
+
 /// ExchangeSpecification with builder
 #[derive(Debug, Clone)]
 pub struct ExchangeSpecification {
@@ -58,7 +79,7 @@ pub struct ExchangeSpecification {
     pub resilience: ResilienceSpecification,
     pub meta_data_json_file_override: Option<String>,
     pub should_load_remote_meta_data: bool,
-    pub exchange_specific_parameters: HashMap<String, ExchangeType>,
+    pub exchange_specific_parameters: HashMap<String, ExchangeParam>,
     pub use_sandbox: bool,
 }
 
@@ -67,7 +88,7 @@ impl ExchangeSpecification {
         ExchangeSpecificationBuilder::default()
     }
 
-    pub fn get_parameter(&self, key: &str) -> Option<&ExchangeType> {
+    pub fn get_parameter(&self, key: &str) -> Option<&ExchangeParam> {
         self.exchange_specific_parameters.get(key)
     }
 
@@ -125,7 +146,7 @@ pub struct ExchangeSpecificationBuilder {
     resilience: Option<ResilienceSpecification>,
     meta_data_json_file_override: Option<String>,
     should_load_remote_meta_data: Option<bool>,
-    exchange_specific_parameters: HashMap<String, ExchangeType>,
+    exchange_specific_parameters: HashMap<String, ExchangeParam>,
 }
 
 impl Default for ExchangeSpecificationBuilder {
@@ -243,7 +264,7 @@ impl ExchangeSpecificationBuilder {
     pub fn exchange_specific_parameter(
         mut self,
         key: impl Into<String>,
-        value: ExchangeType,
+        value: ExchangeParam,
     ) -> Self {
         self.exchange_specific_parameters.insert(key.into(), value);
         self
