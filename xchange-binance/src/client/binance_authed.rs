@@ -2,6 +2,9 @@ use retrofit_rs::{Body, Header, Query, Retrofit, RetrofitError, api, get, post};
 
 #[api("https://api.binance.com")]
 pub trait BinanceAuthed {
+    #[get("/api/v3/ping")]
+    async fn ping(&self) -> Result<serde_json::Value, RetrofitError>;
+
     // #[post("/api/v3/order")]
     // async fn new_order(
     //     &self,

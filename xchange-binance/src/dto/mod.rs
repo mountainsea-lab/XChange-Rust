@@ -36,17 +36,29 @@ pub enum BinanceError {
     #[error("Acquire rate limiter failed: {0}")]
     AcquireRateLimiter(#[source] Box<dyn std::error::Error + Send + Sync>),
 
+    #[error("Api Call Failed: {0}")]
+    ApiCallFailed(#[source] Box<dyn std::error::Error + Send + Sync>),
+
     #[error("Digest error: {0}")]
     Digest(#[from] DigestError),
 
     #[error("Service Not Initialized: {0}")]
     ServiceNotInitialized(String),
 
+    #[error("Client Not Initialized: {0}")]
+    ClientNotInitialized(String),
+
     #[error("Invalid Key: {0}")]
     InvalidKey(String),
 
     #[error("Invalid Param: {0}")]
     InvalidParam(String),
+}
+
+impl From<Box<dyn std::error::Error + Send + Sync>> for BinanceError {
+    fn from(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        BinanceError::ApiCallFailed(e)
+    }
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。

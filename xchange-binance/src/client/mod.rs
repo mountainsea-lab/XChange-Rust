@@ -4,16 +4,24 @@ use crate::client::binance_futures::BinanceFuturesAuthedClient;
 use crate::client::binance_futures::BinanceFuturesClient;
 use retrofit_rs::async_client::interceptors::AuthInterceptor;
 use retrofit_rs::{Retrofit, RetrofitError};
+use std::sync::Arc;
 
 pub mod binance;
 pub mod binance_authed;
 pub(crate) mod binance_futures;
 
+// pub struct BinanceClient {
+//     pub public: BinancePubClient,
+//     pub auth: Option<BinanceAuthedClient>,
+//     pub futures: Option<BinanceFuturesClient>,
+//     pub futures_authed: Option<BinanceFuturesAuthedClient>,
+// }
+
 pub struct BinanceClient {
-    pub public: BinancePubClient,
-    pub auth: Option<BinanceAuthedClient>,
-    pub futures: Option<BinanceFuturesClient>,
-    pub futures_authed: Option<BinanceFuturesAuthedClient>,
+    pub public: Arc<BinancePubClient>,
+    pub auth: Option<Arc<BinanceAuthedClient>>,
+    pub futures: Option<Arc<BinanceFuturesClient>>,
+    pub futures_authed: Option<Arc<BinanceFuturesAuthedClient>>,
 }
 
 impl BinanceClient {
@@ -21,7 +29,7 @@ impl BinanceClient {
     pub fn new_public(base_url: &str) -> Result<Self, RetrofitError> {
         let retrofit = Retrofit::builder().base_url(base_url).build()?;
 
-        let public = BinancePubClient::with_client(retrofit);
+        let public = Arc::new(BinancePubClient::with_client(retrofit));
 
         Ok(Self {
             public,
@@ -38,8 +46,8 @@ impl BinanceClient {
             .add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", api_key))
             .build()?;
 
-        let public = BinancePubClient::with_client(retrofit.clone());
-        let auth = BinanceAuthedClient::with_client(retrofit);
+        let public = Arc::new(BinancePubClient::with_client(retrofit.clone()));
+        let auth = Arc::new(BinanceAuthedClient::with_client(retrofit));
 
         Ok(Self {
             public,
@@ -57,8 +65,8 @@ impl BinanceClient {
             .add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", api_key))
             .build()?;
 
-        let fut_pub = BinanceFuturesClient::with_client(fut_retrofit.clone());
-        let fut_auth = BinanceFuturesAuthedClient::with_client(fut_retrofit);
+        let fut_pub = Arc::new(BinanceFuturesClient::with_client(fut_retrofit.clone()));
+        let fut_auth = Arc::new(BinanceFuturesAuthedClient::with_client(fut_retrofit));
 
         self.futures = Some(fut_pub);
         self.futures_authed = Some(fut_auth);
