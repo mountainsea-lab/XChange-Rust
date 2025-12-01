@@ -128,4 +128,5 @@ impl ParamsDigest for BinanceEd25519Digest {
 pub mod account_service;
 pub mod binance_account_service_raw;
 pub mod binance_base_service;
+mod market_data_service;
 mod market_data_service_inner;
