@@ -1,5 +1,4 @@
 pub mod client_config;
-mod exchange_rest_proxy_builder;
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -191,6 +190,14 @@ where
             }
         }
     }
+}
+
+/// 将任意错误装箱为 Box<dyn Error + Send + Sync>
+pub fn boxed<E>(e: E) -> Box<dyn std::error::Error + Send + Sync>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    Box::new(e)
 }
 
 /// ========================
