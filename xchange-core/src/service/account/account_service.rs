@@ -8,11 +8,14 @@ use crate::instrument::InstrumentDTO;
 use crate::service::BaseService;
 use crate::service::account::params::RequestDepositAddressParams;
 use crate::service::trade::params::TradeHistoryParams;
+use async_trait::async_trait;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// AccountService inherits BaseService functionality.
+#[async_trait]
 pub trait AccountService: BaseService + Send + Sync {
-    fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
+    async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_account_info").into())
     }
 
@@ -33,22 +36,23 @@ pub trait AccountService: BaseService + Send + Sync {
     //         .into())
     // }
 
-    fn request_deposit_address(
+    async fn request_deposit_address(
         &self,
-        currency: Currency,
-        args: &[String],
+        _currency: Currency,
+        _args: &[String],
     ) -> Result<String, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("request_deposit_address").into())
     }
 
-    fn request_deposit_address_with_params(
+    async fn request_deposit_address_with_params(
         &self,
-        params: &dyn RequestDepositAddressParams,
+        params: Arc<dyn RequestDepositAddressParams + Send + Sync>,
     ) -> Result<String, ExchangeError> {
         self.request_deposit_address(params.currency().clone(), params.extra_arguments())
+            .await
     }
 
-    fn request_deposit_address_data(
+    async fn request_deposit_address_data(
         &self,
         currency: Currency,
         args: &[String],
@@ -56,25 +60,28 @@ pub trait AccountService: BaseService + Send + Sync {
         Err(NotYetImplementedForExchangeError::with_message("request_deposit_address_data").into())
     }
 
-    fn request_deposit_address_data_with_params(
+    async fn request_deposit_address_data_with_params(
         &self,
-        params: &dyn RequestDepositAddressParams,
+        params: Arc<dyn RequestDepositAddressParams + Send + Sync>,
     ) -> Result<AddressWithTag, ExchangeError> {
         self.request_deposit_address_data(params.currency().clone(), params.extra_arguments())
+            .await
     }
 
-    fn create_funding_history_params(&self) -> Result<Box<dyn TradeHistoryParams>, ExchangeError> {
+    async fn create_funding_history_params(
+        &self,
+    ) -> Result<Box<dyn TradeHistoryParams>, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("create_funding_history_params").into())
     }
 
-    fn get_funding_history(
+    async fn get_funding_history(
         &self,
-        params: &dyn TradeHistoryParams,
+        params: Arc<dyn TradeHistoryParams + Send + Sync>,
     ) -> Result<Vec<FundingRecord>, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_funding_history").into())
     }
 
-    fn dynamic_trading_fees_by_instrument(
+    async fn dynamic_trading_fees_by_instrument(
         &self,
     ) -> Result<HashMap<InstrumentDTO, Fee>, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message(

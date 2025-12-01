@@ -3,32 +3,11 @@ use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::BinanceTime;
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
 use crate::service::market_data_service_inner::MarketDataInner;
+use async_trait::async_trait;
 use std::sync::Arc;
-use xchange_core::currency::currency_pair::CurrencyPair;
-use xchange_core::dto::marketdata::ticker::Ticker;
 use xchange_core::dto::meta::ExchangeHealth;
-use xchange_core::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeError};
 use xchange_core::service::BaseService;
-
-/// Trait representing market data services for an Exchange
-pub trait MarketDataService: BaseService {
-    /// Returns the current exchange health
-    /// Default implementation returns `ExchangeHealth::Online`
-    fn get_exchange_health(&self) -> ExchangeHealth {
-        ExchangeHealth::Online
-    }
-
-    /// Get a ticker representing the current exchange rate for a currency pair
-    ///
-    /// Default implementation returns an error indicating not yet implemented
-    fn get_ticker(
-        &self,
-        _currency_pair: &CurrencyPair,
-        _args: Option<&[&str]>,
-    ) -> Result<Ticker, ExchangeError> {
-        Err(NotYetImplementedForExchangeError::with_message("getAccountInfo".to_owned()).into())
-    }
-}
+use xchange_core::service::marketdata::market_data_service::MarketDataService;
 
 /// Binance Market Data Service
 pub struct BinanceMarketDataService {
@@ -62,9 +41,10 @@ impl BinanceMarketDataService {
 }
 
 /// 实现 MarketDataService trait
+#[async_trait]
 impl MarketDataService for BinanceMarketDataService {
     /// 默认实现 ExchangeHealth
-    fn get_exchange_health(&self) -> ExchangeHealth {
+    async fn exchange_health(&self) -> ExchangeHealth {
         // TODO: 通过 get_system_status 调用 client，返回实际状态
         // 暂时返回占位值
         ExchangeHealth::Offline

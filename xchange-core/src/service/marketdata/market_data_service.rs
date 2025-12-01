@@ -8,26 +8,32 @@ use crate::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeEr
 use crate::instrument::InstrumentDTO;
 use crate::service::BaseService;
 use crate::service::marketdata::params::Params;
+use async_trait::async_trait;
 
 /// Service to explore market data
+#[async_trait]
 pub trait MarketDataService: BaseService + Send + Sync {
     /// Get the exchange health
-    fn exchange_health(&self) -> ExchangeHealth {
+    async fn exchange_health(&self) -> ExchangeHealth {
         ExchangeHealth::Online
     }
 
     /// Get ticker by instrument
-    fn ticker(&self, _instrument: &InstrumentDTO, _args: &[&str]) -> Result<Ticker, ExchangeError> {
+    async fn ticker(
+        &self,
+        _instrument: &InstrumentDTO,
+        _args: &[&str],
+    ) -> Result<Ticker, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_ticker").into())
     }
 
     /// Get multiple tickers based on params
-    fn tickers(&self, _params: &dyn Params) -> Result<Vec<Ticker>, ExchangeError> {
+    async fn tickers(&self, _params: &dyn Params) -> Result<Vec<Ticker>, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_tickers").into())
     }
 
     /// Get order book by instrument
-    fn order_book(
+    async fn order_book(
         &self,
         _instrument: &InstrumentDTO,
         _args: &[&str],
@@ -36,17 +42,21 @@ pub trait MarketDataService: BaseService + Send + Sync {
     }
 
     /// Get order book using params
-    fn order_book_by_params(&self, _params: &dyn Params) -> Result<OrderBook, ExchangeError> {
+    async fn order_book_by_params(&self, _params: &dyn Params) -> Result<OrderBook, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_order_book").into())
     }
 
     /// Get trades by instrument
-    fn trades(&self, _instrument: &InstrumentDTO, _args: &[&str]) -> Result<Trades, ExchangeError> {
+    async fn trades(
+        &self,
+        _instrument: &InstrumentDTO,
+        _args: &[&str],
+    ) -> Result<Trades, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_trades").into())
     }
 
     /// Get trades by params
-    fn trades_by_params(&self, _params: &dyn Params) -> Result<Trades, ExchangeError> {
+    async fn trades_by_params(&self, _params: &dyn Params) -> Result<Trades, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_trades").into())
     }
 
@@ -60,12 +70,15 @@ pub trait MarketDataService: BaseService + Send + Sync {
     // }
 
     /// Get all funding rates
-    fn funding_rates(&self) -> Result<FundingRates, ExchangeError> {
+    async fn funding_rates(&self) -> Result<FundingRates, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_funding_rates").into())
     }
 
     /// Get funding rate for a specific instrument
-    fn funding_rate(&self, _instrument: &InstrumentDTO) -> Result<FundingRate, ExchangeError> {
+    async fn funding_rate(
+        &self,
+        _instrument: &InstrumentDTO,
+    ) -> Result<FundingRate, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_funding_rate").into())
     }
 }

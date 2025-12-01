@@ -1,11 +1,13 @@
 use crate::binance_time_provider::BinanceTimeProvider;
 use crate::dto::BinanceError;
+use crate::service::account_service::BinanceAccountService;
+use crate::service::market_data_service::BinanceMarketDataService;
 use parking_lot::RwLock;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use xchange_core::ValueFactory;
 use xchange_core::client::ResilienceRegistries;
 use xchange_core::dto::meta::exchange_metadata::ExchangeMetaData;
+use xchange_core::error::exchange_error::{ExchangeError, ExchangeUnavailableError};
 use xchange_core::exchange::{BaseExchange, Exchange, ExchangeType};
 use xchange_core::exchange_specification::{ExchangeParam, ExchangeSpecification};
 use xchange_core::instrument::Instrument;
@@ -28,6 +30,8 @@ pub const SANDBOX_INVERSE_FUTURES_URL: &str = "https://testnet.binancefuture.com
 
 // ----------------- BinanceExchange -----------------
 pub struct BinanceExchange {
+    pub self_arc: Weak<BinanceExchange>,
+
     /// 完全拥有 BaseExchange，spec 可动态修改
     pub base: Arc<BaseExchange>,
 
@@ -39,40 +43,70 @@ pub struct BinanceExchange {
 }
 
 impl BinanceExchange {
-    /// --------------------------
-    /// 构造函数，初始化阶段调用 apply_specification
-    /// --------------------------
-    pub async fn new(mut spec: ExchangeSpecification) -> Result<Self, BinanceError> {
-        // 调整 host/ssl_uri/port
-        Self::conclude_host_params(&mut spec);
+    /// 默认初始化（开箱即用）
+    pub async fn default() -> Result<Arc<Self>, BinanceError> {
+        let spec = Self::default_exchange_specification();
+        Self::with_specification(spec).await
+    }
 
-        // 初始化 resilience
+    pub async fn with_specification(
+        mut spec: ExchangeSpecification,
+    ) -> Result<Arc<Self>, BinanceError> {
         let resilience_registries = Arc::new(ResilienceRegistries::new());
 
-        // 初始化 BaseExchange
-        let base = Arc::new(BaseExchange {
-            spec: Arc::new(RwLock::new(spec.clone())),
-            meta_data: Arc::new(RwLock::new(ExchangeMetaData::default())),
-            nonce_factory: Arc::new(BinanceTimeProvider::new(
+        Self::conclude_host_params(&mut spec);
+
+        // 占位 Arc<Self> 用于初始化服务
+        let exchange = Arc::new_cyclic(|weak_self| {
+            let base = Arc::new(BaseExchange {
+                spec: Arc::new(RwLock::new(spec.clone())),
+                meta_data: Arc::new(RwLock::new(ExchangeMetaData::default())),
+                nonce_factory: Arc::new(BinanceTimeProvider::new(
+                    spec.resilience,
+                    resilience_registries.clone(),
+                )),
+
+                market_service: RwLock::new(None),
+                trade_service: RwLock::new(None),
+                account_service: RwLock::new(None),
+            });
+
+            let timestamp_provider = Arc::new(BinanceTimeProvider::new(
                 spec.resilience,
                 resilience_registries.clone(),
-            )),
-            market_service: None,
-            trade_service: None,
-            account_service: None,
+            ));
+
+            Self {
+                base,
+                timestamp_provider,
+                resilience_registries,
+                self_arc: weak_self.clone(),
+            }
         });
 
-        // 初始化 timestamp_provider
-        let timestamp_provider = Arc::new(BinanceTimeProvider::new(
-            spec.resilience,
-            resilience_registries.clone(),
-        ));
+        exchange.init_services()?;
 
-        Ok(Self {
-            base,
-            timestamp_provider,
-            resilience_registries,
-        })
+        Ok(exchange)
+    }
+
+    pub fn init_services(&self) -> Result<(), BinanceError> {
+        let exchange_ref = self.clone_exchange_ref();
+
+        // 1. 初始化 MarketDataService
+        let market_service = BinanceMarketDataService::new(exchange_ref.clone())?;
+        *self.base.market_service.write() = Some(Arc::new(market_service));
+
+        // 2. 初始化 AccountService
+        let account_service = BinanceAccountService::new(exchange_ref)?;
+        *self.base.account_service.write() = Some(Arc::new(account_service));
+
+        Ok(())
+    }
+
+    pub fn clone_exchange_ref(&self) -> Arc<BinanceExchange> {
+        self.self_arc
+            .upgrade()
+            .expect("Exchange self_arc has been dropped unexpectedly")
     }
 
     /// --------------------------
@@ -144,10 +178,25 @@ impl BinanceExchange {
     /// --------------------------
     /// 动态应用新的 ExchangeSpecification（线程安全）
     /// --------------------------
-    pub async fn apply_specification(&self, mut spec: ExchangeSpecification) {
+    pub fn apply_specification(
+        &mut self,
+        mut spec: ExchangeSpecification,
+    ) -> Result<(), BinanceError> {
         Self::conclude_host_params(&mut spec);
-        let mut spec_lock = self.base.spec.write();
-        *spec_lock = spec;
+
+        // 更新 spec
+        *self.base.spec.write() = spec;
+
+        // 重新初始化依赖服务
+        self.init_services()?;
+
+        // 更新 timestamp_provider
+        self.timestamp_provider = Arc::new(BinanceTimeProvider::new(
+            self.base.spec.read().resilience.clone(),
+            self.resilience_registries.clone(),
+        ));
+
+        Ok(())
     }
 
     /// 获取 Resilience 注册表（可懒初始化）
@@ -203,21 +252,50 @@ impl Exchange for BinanceExchange {
         Arc::new(Self::default_exchange_specification())
     }
 
-    fn apply_specification(&mut self, mut spec: ExchangeSpecification) {
+    /// --------------------------
+    /// 动态应用新的 ExchangeSpecification（线程安全）
+    /// --------------------------
+    fn apply_specification(
+        &mut self,
+        mut spec: ExchangeSpecification,
+    ) -> Result<(), ExchangeError> {
         Self::conclude_host_params(&mut spec);
-        let mut spec_lock = self.base.spec.write(); // 注意：没有 .await
-        *spec_lock = spec;
+
+        // 更新 spec
+        *self.base.spec.write() = spec;
+
+        // 重新初始化依赖服务
+        self.init_services()?;
+
+        // 更新 timestamp_provider
+        self.timestamp_provider = Arc::new(BinanceTimeProvider::new(
+            self.base.spec.read().resilience.clone(),
+            self.resilience_registries.clone(),
+        ));
+
+        Ok(())
     }
 
-    fn market_data_service(&self) -> Arc<dyn MarketDataService + Send + Sync> {
-        self.base.market_service.as_ref().unwrap().clone()
+    fn market_data_service(
+        &self,
+    ) -> Result<Arc<dyn MarketDataService + Send + Sync>, ExchangeError> {
+        let guard = self.base.market_service.read();
+        guard.as_ref().cloned().ok_or_else(|| {
+            ExchangeUnavailableError::with_message("MarketDataService".to_string()).into()
+        })
     }
 
-    fn trade_service(&self) -> Arc<dyn TradeService + Send + Sync> {
-        self.base.trade_service.as_ref().unwrap().clone()
+    fn trade_service(&self) -> Result<Arc<dyn TradeService + Send + Sync>, ExchangeError> {
+        let guard = self.base.trade_service.read();
+        guard.as_ref().cloned().ok_or_else(|| {
+            ExchangeUnavailableError::with_message("TradeService".to_string()).into()
+        })
     }
 
-    fn account_service(&self) -> Arc<dyn AccountService + Send + Sync> {
-        self.base.account_service.as_ref().unwrap().clone()
+    fn account_service(&self) -> Result<Arc<dyn AccountService + Send + Sync>, ExchangeError> {
+        let guard = self.base.account_service.read();
+        guard.as_ref().cloned().ok_or_else(|| {
+            ExchangeUnavailableError::with_message("AccountService".to_string()).into()
+        })
     }
 }

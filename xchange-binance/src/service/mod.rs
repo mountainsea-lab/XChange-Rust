@@ -150,5 +150,5 @@ macro_rules! delegate_client {
 pub mod account_service;
 pub mod binance_account_service_raw;
 pub mod binance_base_service;
-mod market_data_service;
-mod market_data_service_inner;
+pub mod market_data_service;
+pub mod market_data_service_inner;

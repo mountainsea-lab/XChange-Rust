@@ -2,11 +2,13 @@ use crate::dto::meta::exchange_metadata::ExchangeMetaData;
 use crate::dto::trade::limit_order::LimitOrder;
 use crate::dto::trade::market_order::MarketOrder;
 use crate::exchange::Exchange;
+use async_trait::async_trait;
 
 pub mod account;
 pub mod marketdata;
 pub mod trade;
 
+#[async_trait]
 pub trait BaseService: Send + Sync {}
 
 pub trait ExchangeService<E: Exchange> {

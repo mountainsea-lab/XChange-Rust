@@ -4,21 +4,9 @@ use crate::service::binance_account_service_raw::BinanceAccountServiceRaw;
 use async_trait::async_trait;
 use std::sync::Arc;
 use xchange_core::dto::account::account_info::AccountInfo;
-use xchange_core::error::exchange_error::{ExchangeError, NotYetImplementedForExchangeError};
+use xchange_core::error::exchange_error::ExchangeError;
 use xchange_core::service::BaseService;
-
-/// -------------------------
-///  AccountService trait
-/// -------------------------
-#[async_trait]
-pub trait AccountService: BaseService {
-    /// 获取账户信息
-    ///
-    /// 默认实现：返回 NotImplemented 错误
-    async fn get_account_info(&self) -> Result<AccountInfo, ExchangeError> {
-        Err(NotYetImplementedForExchangeError::with_message("getAccountInfo".to_owned()).into())
-    }
-}
+use xchange_core::service::account::account_service::AccountService;
 
 pub struct BinanceAccountService {
     raw: Arc<BinanceAccountServiceRaw>,
@@ -34,7 +22,7 @@ impl BinanceAccountService {
 
 #[async_trait]
 impl AccountService for BinanceAccountService {
-    async fn get_account_info(&self) -> Result<AccountInfo, ExchangeError> {
+    async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         // future implementation:
         // - 根据 ExchangeType 调用 raw.account / raw.futures_account
         // - 使用 BinanceAdapters 转换模型

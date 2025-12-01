@@ -3,8 +3,11 @@ pub mod meta;
 
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt;
 use thiserror::Error;
+use xchange_core::error::ExchangeErrorDetail;
+use xchange_core::error::exchange_error::ExchangeError;
 use xchange_core::rescu::params_digest::DigestError;
 
 #[derive(Debug, Error)]
@@ -47,6 +50,27 @@ pub enum BinanceError {
 
     #[error("Invalid Param: {0}")]
     InvalidParam(String),
+}
+
+impl ExchangeErrorDetail for BinanceError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            BinanceError::Http(e) => Some(e),
+            BinanceError::Io(e) => Some(e),
+            BinanceError::Json(e) => Some(e),
+            BinanceError::Retrofit(e) => Some(e),
+            BinanceError::Digest(e) => Some(e),
+            BinanceError::TimeProvider(e) => Some(&**e),
+            BinanceError::AcquireRateLimiter(e) => Some(&**e),
+            _ => None,
+        }
+    }
+}
+
+impl From<BinanceError> for ExchangeError {
+    fn from(err: BinanceError) -> Self {
+        ExchangeError::Custom(Box::new(err))
+    }
 }
 
 /// Binance API 返回的业务错误，例如签名错误、参数错误、权限不足等。
