@@ -14,7 +14,9 @@ pub struct BinanceAccountServiceRaw {
 
 impl BinanceAccountServiceRaw {
     pub fn new(exchange: Arc<BinanceExchange>) -> Result<Self, BinanceError> {
-        let base = BinanceBaseService::new(exchange)?;
+        let base = BinanceBaseService::new(exchange.clone())
+            .map_err(|e| BinanceError::ServiceNotInitialized(e.to_string()))?;
+
         Ok(Self {
             base: Arc::new(base),
             currency_infos: RwLock::new(None),
