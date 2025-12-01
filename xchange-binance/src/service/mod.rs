@@ -125,5 +125,6 @@ impl ParamsDigest for BinanceEd25519Digest {
     }
 }
 
-mod binance_account_service_raw;
-mod binance_base_service;
+pub mod account_service;
+pub mod binance_account_service_raw;
+pub mod binance_base_service;
