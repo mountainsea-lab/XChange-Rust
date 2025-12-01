@@ -1,3 +1,4 @@
+pub mod auth_utils;
 pub mod time_nonce;
 
 use chrono::{DateTime, TimeZone, Utc};

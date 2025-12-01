@@ -1,6 +1,7 @@
 use crate::binance_time_provider::BinanceTimeProvider;
 use crate::dto::BinanceError;
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::sync::Arc;
 use xchange_core::ValueFactory;
 use xchange_core::client::ResilienceRegistries;
@@ -11,6 +12,7 @@ use xchange_core::instrument::Instrument;
 use xchange_core::service::account::account_service::AccountService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
 use xchange_core::service::trade::trade_service::TradeService;
+use xchange_core::utils::auth_utils::AuthUtils;
 
 // ----------------- 常量 -----------------
 pub const EXCHANGE_TYPE_KEY: &str = "Exchange_Type";
@@ -152,6 +154,30 @@ impl BinanceExchange {
     pub fn get_resilience_registries(&self) -> Arc<ResilienceRegistries> {
         self.resilience_registries.clone()
     }
+
+    pub fn default_exchange_specification() -> ExchangeSpecification {
+        let mut spec = ExchangeSpecification {
+            exchange_name: Some("Binance".into()),
+            exchange_description: Some("Binance Exchange.".into()),
+            ssl_uri: Some(SPOT_URL.into()),
+            host: Some("www.binance.com".into()),
+            port: 80,
+
+            // 其余 Option 字段保持默认
+            ..ExchangeSpecification::builder().build()
+        };
+
+        // 设置交易所特定参数
+        spec.exchange_specific_parameters
+            .insert("EXCHANGE_TYPE".into(), ExchangeParam::String("SPOT".into()));
+        spec.exchange_specific_parameters
+            .insert("USE_SANDBOX".into(), ExchangeParam::Boolean(false));
+
+        // 加载 API Key / Secret
+        AuthUtils::set_api_and_secret_key(&mut spec, Some("binance"));
+
+        spec
+    }
 }
 
 // ----------------- Exchange trait impl -----------------
@@ -172,21 +198,9 @@ impl Exchange for BinanceExchange {
     fn nonce_factory(&self) -> Arc<dyn ValueFactory<u64>> {
         self.base.nonce_factory.clone()
     }
-    //@Override
-    //   public ExchangeSpecification getDefaultExchangeSpecification() {
-    //     ExchangeSpecification spec = new ExchangeSpecification(this.getClass());
-    //     spec.setSslUri(SPOT_URL);
-    //     spec.setHost("www.binance.com");
-    //     spec.setPort(80);
-    //     spec.setExchangeName("Binance");
-    //     spec.setExchangeDescription("Binance Exchange.");
-    //     spec.setExchangeSpecificParametersItem(EXCHANGE_TYPE, SPOT);
-    //     spec.setExchangeSpecificParametersItem(USE_SANDBOX, false);
-    //     AuthUtils.setApiAndSecretKey(spec, "binance");
-    //     return spec;
-    //   }
+
     fn default_exchange_specification(&self) -> Arc<ExchangeSpecification> {
-        todo!()
+        Arc::new(Self::default_exchange_specification())
     }
 
     fn apply_specification(&mut self, mut spec: ExchangeSpecification) {

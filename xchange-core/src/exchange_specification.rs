@@ -109,18 +109,19 @@ impl ExchangeSpecification {
         if self.host.is_none() {
             self.host = default.host.clone();
         }
-        if self.port == 0 {
-            self.port = default.port;
-        }
-        if self.exchange_specific_parameters.is_empty() {
-            self.exchange_specific_parameters = default.exchange_specific_parameters.clone();
+
+        // 端口字段默认值填充
+        self.port = if self.port == 0 {
+            default.port
         } else {
-            // 只填充缺失 key
-            for (k, v) in &default.exchange_specific_parameters {
-                self.exchange_specific_parameters
-                    .entry(k.clone())
-                    .or_insert(v.clone());
-            }
+            self.port
+        };
+
+        // 填充 exchange_specific_parameters 缺失 key
+        for (k, v) in &default.exchange_specific_parameters {
+            self.exchange_specific_parameters
+                .entry(k.clone())
+                .or_insert_with(|| v.clone());
         }
     }
 }
