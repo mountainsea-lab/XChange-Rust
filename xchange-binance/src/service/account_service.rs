@@ -31,3 +31,16 @@ impl BinanceAccountService {
         })
     }
 }
+
+#[async_trait]
+impl AccountService for BinanceAccountService {
+    async fn get_account_info(&self) -> Result<AccountInfo, ExchangeError> {
+        // future implementation:
+        // - 根据 ExchangeType 调用 raw.account / raw.futures_account
+        // - 使用 BinanceAdapters 转换模型
+        // - 捕获 BinanceError → 转换为 ExchangeError
+
+        unimplemented!("BinanceAccountService::get_account_info is not implemented yet");
+    }
+}
+impl BaseService for BinanceAccountService {}
