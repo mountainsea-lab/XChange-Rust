@@ -4,7 +4,6 @@ use crate::dto::account::binance_currency_info::BinanceCurrencyInfo;
 use crate::service::binance_base_service::BinanceBaseService;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use xchange_core::client::ResilienceRegistries;
 
 pub struct BinanceAccountServiceRaw {
     pub base: Arc<BinanceBaseService>,

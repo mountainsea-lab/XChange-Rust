@@ -125,6 +125,28 @@ impl ParamsDigest for BinanceEd25519Digest {
     }
 }
 
+/// 批量代理 Client 方法到 Service
+/// Usage:
+/// ```rust
+/// delegate_client! {
+///     client, // 组合对象字段名
+///     {
+///         ping => (),
+///         get_exchange_info => BinanceExchangeInfo,
+///     }
+/// }
+/// ```
+#[macro_export]
+macro_rules! delegate_client {
+    ($client:ident, { $($fn_name:ident => $ret:ty),* $(,)? }) => {
+        $(
+            pub async fn $fn_name(&self) -> Result<$ret, crate::dto::BinanceError> {
+                self.$client.$fn_name().await
+            }
+        )*
+    };
+}
+
 pub mod account_service;
 pub mod binance_account_service_raw;
 pub mod binance_base_service;
