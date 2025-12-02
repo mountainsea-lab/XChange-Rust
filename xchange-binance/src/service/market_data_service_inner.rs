@@ -1,6 +1,6 @@
 use crate::binance_exchange::BinanceExchange;
 use crate::binance_resilience::REQUEST_WEIGHT_RATE_LIMITER;
-use crate::client::binance_authed::BinanceAuthed;
+use crate::client::binance_spot::BinanceAuthed;
 use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::BinanceTime;
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
@@ -32,19 +32,11 @@ impl MarketDataInner {
             .as_ref()
             .cloned();
 
-        let auth_client = self.base.client.auth.clone();
+        let auth_client = self.base.client.spot.clone();
 
         let mut resilient = ResilientCall::new(move || {
             let auth_client = auth_client.clone();
-            async move {
-                auth_client
-                    .ok_or_else(|| {
-                        BinanceError::ClientNotInitialized("auth client not initialized".into())
-                    })?
-                    .ping()
-                    .await
-                    .map_err(boxed)
-            }
+            async move { auth_client.ping().await.map_err(boxed) }
         });
 
         if let Some(limiter) = limit {

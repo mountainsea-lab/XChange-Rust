@@ -1,13 +1,10 @@
-use crate::binance_exchange::{
-    BinanceExchange, EXCHANGE_TYPE_KEY, FUTURES_URL, INVERSE_FUTURES_URL,
-};
+use crate::binance_exchange::{BinanceExchange, EXCHANGE_TYPE_KEY};
 use crate::client::BinanceClient;
 use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::BinanceSystemStatus;
 use crate::service::{BinanceEd25519Digest, BinanceHmacDigest};
 use std::sync::Arc;
 use xchange_core::ValueFactory;
-use xchange_core::exchange::ExchangeType;
 use xchange_core::exchange_specification::ExchangeParam;
 use xchange_core::rescu::params_digest::ParamsDigest;
 
@@ -48,31 +45,11 @@ impl BinanceBaseService {
 
         drop(spec_read); // 提前释放锁
 
-        // ---------------------
-        // 2) 构建 Client（public or authed）
-        // ---------------------
-        let mut client = if let Some(ref key) = api_key {
-            BinanceClient::new_authenticated(&base_url, key)?
-        } else {
-            BinanceClient::new_public(&base_url)?
-        };
-
-        // ---------------------
-        // 3) 根据 exchange_type attach futures / inverse futures
-        // ---------------------
-        if let Some(ref key) = api_key {
-            match exchange_type {
-                Some(ExchangeType::Futures) | Some(ExchangeType::PortfolioMargin) => {
-                    attach_futures(&mut client, key, FUTURES_URL)?;
-                }
-                Some(ExchangeType::Inverse) => {
-                    attach_futures(&mut client, key, INVERSE_FUTURES_URL)?;
-                }
-                _ => {}
-            }
-        }
-
-        let client = Arc::new(client);
+        let client = Arc::new(BinanceClient::new_with_exchange_type(
+            &base_url,
+            api_key.as_deref(),
+            exchange_type,
+        )?);
 
         // ---------------------
         // 4) 构建 digest（ED25519 / HMAC）
@@ -133,15 +110,4 @@ impl BinanceBaseService {
         // client.system_status().await
         todo!()
     }
-}
-
-/// 提取的 futures attach 函数
-fn attach_futures(
-    client: &mut BinanceClient,
-    api_key: &str,
-    url: &str,
-) -> Result<(), BinanceError> {
-    let futures_cli = BinanceClient::new_authenticated(url, api_key)?;
-    client.futures_authed = futures_cli.futures_authed;
-    Ok(())
 }
