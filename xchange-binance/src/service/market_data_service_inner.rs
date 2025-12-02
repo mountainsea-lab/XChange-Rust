@@ -48,22 +48,65 @@ impl MarketDataInner {
         Ok(())
     }
     pub async fn binance_time(&self) -> Result<BinanceTime, BinanceError> {
-        // let resilience_registries = self.base.exchange.resilience_registries;
-        // let retry = resilience_registries.retry(REQUEST_WEIGHT_RATE_LIMITER);
-        // let limit = resilience_registries.rate_limiter(REQUEST_WEIGHT_RATE_LIMITER);
-        // ResilientCall::new(|| async {
-        //     self.base.client..binance_time().await.map_err(boxed)
-        // })
-        //     .with_rate_limiter(limit)
-        //     .call()
-        //     .await?;
-        // TODO: 调用 exchange API，并加 retry / rate limiter
-        unimplemented!("get_exchange_info not implemented yet")
+        let retry = self
+            .base
+            .exchange
+            .resilience_registries
+            .retry(REQUEST_WEIGHT_RATE_LIMITER);
+        let limit = self
+            .base
+            .exchange
+            .resilience_registries
+            .rate_limiter(REQUEST_WEIGHT_RATE_LIMITER)
+            .as_ref()
+            .cloned();
+
+        let auth_client = self.base.client.spot.clone();
+
+        let mut resilient = ResilientCall::new(move || {
+            let auth_client = auth_client.clone();
+            async move { auth_client.time().await.map_err(boxed) }
+        });
+
+        if let Some(retry) = retry {
+            resilient = resilient.with_retry(retry)
+        }
+        if let Some(limiter) = limit {
+            resilient = resilient.with_rate_limiter(limiter);
+        }
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
     }
 
     pub async fn exchange_info(&self) -> Result<BinanceExchangeInfo, BinanceError> {
-        // TODO: 调用 exchange API，并加 retry / rate limiter
-        unimplemented!("get_exchange_info not implemented yet")
+        let retry = self
+            .base
+            .exchange
+            .resilience_registries
+            .retry(REQUEST_WEIGHT_RATE_LIMITER);
+        let limit = self
+            .base
+            .exchange
+            .resilience_registries
+            .rate_limiter(REQUEST_WEIGHT_RATE_LIMITER)
+            .as_ref()
+            .cloned();
+
+        let auth_client = self.base.client.spot.clone();
+
+        let mut resilient = ResilientCall::new(move || {
+            let auth_client = auth_client.clone();
+            async move { auth_client.exchange_info().await.map_err(boxed) }
+        });
+
+        if let Some(retry) = retry {
+            resilient = resilient.with_retry(retry)
+        }
+        if let Some(limiter) = limit {
+            resilient = resilient.with_rate_limiter(limiter);
+        }
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
     }
 
     pub async fn future_exchange_info(&self) -> Result<BinanceExchangeInfo, BinanceError> {
