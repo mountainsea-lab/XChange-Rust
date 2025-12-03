@@ -2,9 +2,7 @@ use crate::dto::meta::exchange_metadata::ExchangeMetaData;
 use crate::dto::trade::limit_order::LimitOrder;
 use crate::dto::trade::market_order::MarketOrder;
 use crate::exchange::Exchange;
-use async_trait::async_trait;
 use std::any::Any;
-use std::sync::Arc;
 
 pub mod account;
 pub mod marketdata;

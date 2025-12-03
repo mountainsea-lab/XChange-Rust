@@ -1,13 +1,11 @@
 pub mod auth_utils;
 pub mod time_nonce;
 
-use crate::error::exchange_error::ExchangeError;
 use crate::service::BaseService;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Deserialize;
 use serde::de::{self, Deserializer};
 use serde_json::Value;
-use std::any::Any;
 use std::sync::Arc;
 
 /// 辅助函数：尝试 Display，否则 Debug
@@ -45,7 +43,7 @@ where
 }
 
 // 泛型获取 Exchange Service 具体服务
-fn service_ref<T: 'static, S: BaseService + ?Sized>(service: &Arc<S>) -> &T {
+pub fn service_ref<T: 'static, S: BaseService + ?Sized>(service: &Arc<S>) -> &T {
     service
         .as_ref()
         .as_any()
