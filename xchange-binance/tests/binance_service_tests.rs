@@ -9,7 +9,7 @@ use xchange_binance::service::market_data_service::BinanceMarketDataService;
 use xchange_core::dto::meta::ExchangeHealth;
 use xchange_core::exchange::Exchange;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
-use xchange_core::utils::{service_arc, service_ref};
+use xchange_core::utils::service_arc;
 
 /// 异步创建 BinanceExchange
 async fn default_exchange() -> Result<Arc<BinanceExchange>, BinanceError> {

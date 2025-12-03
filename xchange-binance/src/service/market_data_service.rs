@@ -1,5 +1,6 @@
 use crate::binance_exchange::BinanceExchange;
 use crate::dto::BinanceError;
+use crate::dto::marketdata::KlineInterval;
 use crate::dto::marketdata::binance_kline::BinanceKline;
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
@@ -7,6 +8,7 @@ use crate::service::market_data_service_inner::MarketDataInner;
 use async_trait::async_trait;
 use std::any::Any;
 use std::sync::Arc;
+use xchange_core::currency::currency_pair::CurrencyPair;
 use xchange_core::dto::meta::ExchangeHealth;
 use xchange_core::service::BaseService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
@@ -28,14 +30,14 @@ impl BinanceMarketDataService {
     // 调用宏批量代理方法
     delegate_client! {
         inner, {
-            ping => (),
-            binance_time => BinanceTime,
-            system_status => BinanceSystemStatus,
-            exchange_info => BinanceExchangeInfo,
-            last_klines => BinanceKline,
-            klines_with_limit => Vec<BinanceKline>,
-            klines => Vec<BinanceKline>,
-            future_exchange_info => BinanceExchangeInfo,
+            ping() -> Result<(), BinanceError>,
+            binance_time() -> Result<BinanceTime, BinanceError>,
+            system_status() -> Result<BinanceSystemStatus, BinanceError>,
+            exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
+            last_kline(pair: CurrencyPair, interval: KlineInterval) -> Result<BinanceKline, BinanceError>,
+            klines_default_limit(pair: CurrencyPair,interval: KlineInterval) -> Result<Vec<BinanceKline>, BinanceError>,
+            klines(pair: CurrencyPair,interval: KlineInterval,limit: Option<u32>,start_time: Option<u64>,end_time: Option<u64>) -> Result<Vec<BinanceKline>, BinanceError>,
+            future_exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
         }
     }
 }

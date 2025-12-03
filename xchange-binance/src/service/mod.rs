@@ -128,23 +128,43 @@ impl ParamsDigest for BinanceEd25519Digest {
 /// 批量代理 Client 方法到 Service
 /// Usage:
 /// ```rust
-/// delegate_client! {
-///     client, // 组合对象字段名
-///     {
-///         ping => (),
-///         get_exchange_info => BinanceExchangeInfo,
+///  delegate_client! {
+///         inner, {
+///             ping() -> Result<(), BinanceError>,
+///             binance_time() -> Result<BinanceTime, BinanceError>,
+///             system_status() -> Result<BinanceSystemStatus, BinanceError>,
+///             exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
+///             last_kline(pair: CurrencyPair, interval: KlineInterval) -> Result<BinanceKline, BinanceError>,
+///             klines_default_limit(pair: CurrencyPair,interval: KlineInterval) -> Result<Vec<BinanceKline>, BinanceError>,
+///             klines(pair: CurrencyPair,interval: KlineInterval,limit: Option<u32>,start_time: Option<u64>,end_time: Option<u64>) -> Result<Vec<BinanceKline>, BinanceError>,
+///             future_exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
+///         }
 ///     }
-/// }
 /// ```
 #[macro_export]
 macro_rules! delegate_client {
-    ($client:ident, { $($fn_name:ident => $ret:ty),* $(,)? }) => {
+    (
+        $client:ident,
+        {
+            $(
+                $fn_name:ident ( $( $arg:ident : $arg_ty:ty ),* ) $( -> $ret:ty )?
+            ),* $(,)?
+        }
+    ) => {
         $(
-            pub async fn $fn_name(&self) -> Result<$ret, crate::dto::BinanceError> {
-                self.$client.$fn_name().await
+            pub async fn $fn_name(&self, $( $arg : $arg_ty ),* )
+                -> $crate::delegate_client!(@ret $( $ret )?)
+            {
+                self.$client.$fn_name( $( $arg ),* ).await
             }
         )*
     };
+
+    // 未指定返回类型，则自动使用 client 方法的返回类型（最关键的兼容点）
+    (@ret) => { _ };
+
+    // 指定了返回类型
+    (@ret $ret:ty) => { $ret };
 }
 
 pub mod account_service;
