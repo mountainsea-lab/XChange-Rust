@@ -99,7 +99,7 @@ impl BinanceAdapters {
             InstrumentKind::FuturesContract(fc) => {
                 let cp = fc.currency_pair();
 
-                let mut symbol = format!("{}{}", cp.base.code, cp.counter.code);
+                let symbol = format!("{}{}", cp.base.code, cp.counter.code);
 
                 if is_inverse {
                     if let Some(prompt) = &fc.prompt {

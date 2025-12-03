@@ -109,7 +109,7 @@ impl BinanceBaseService {
     pub async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError> {
         let spot_client = self.client.spot.clone();
 
-        let mut resilient = ResilientCall::new(move || {
+        let resilient = ResilientCall::new(move || {
             let auth_client = spot_client.clone();
             async move { auth_client.system_status().await.map_err(boxed) }
         });

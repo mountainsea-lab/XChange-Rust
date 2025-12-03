@@ -1,12 +1,18 @@
+use crate::binance::BinanceAdapters;
 use crate::binance_exchange::BinanceExchange;
 use crate::binance_resilience::REQUEST_WEIGHT_RATE_LIMITER;
 use crate::client::binance_spot::BinanceAuthed;
 use crate::dto::BinanceError;
+use crate::dto::marketdata::KlineInterval;
+use crate::dto::marketdata::binance_kline::BinanceKline;
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
 use crate::service::binance_base_service::BinanceBaseService;
+use retrofit_rs::Query;
 use std::sync::Arc;
 use xchange_core::client::{ResilientCall, boxed};
+use xchange_core::currency::currency_pair::CurrencyPair;
+use xchange_core::instrument::InstrumentKind;
 
 /// 公共封装层：Binance Market Data 客户端
 pub struct MarketDataInner {
@@ -109,6 +115,113 @@ impl MarketDataInner {
         }
         if let Some(limiter) = limit {
             resilient = resilient.with_rate_limiter(limiter);
+        }
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
+    }
+
+    pub async fn last_kline(
+        &self,
+        pair: CurrencyPair,
+        interval: KlineInterval,
+    ) -> Result<BinanceKline, BinanceError> {
+        let klines = self.klines(pair, interval, Some(1), None, None).await?;
+
+        klines
+            .into_iter()
+            .next()
+            .ok_or_else(|| BinanceError::Message("No kline returned".into()))
+    }
+
+    pub async fn klines_default_limit(
+        &self,
+        pair: CurrencyPair,
+        interval: KlineInterval,
+    ) -> Result<Vec<BinanceKline>, BinanceError> {
+        self.klines(pair, interval, None, None, None).await
+    }
+
+    pub async fn klines(
+        &self,
+        pair: CurrencyPair,
+        interval: KlineInterval,
+        limit: Option<u32>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
+    ) -> Result<Vec<BinanceKline>, BinanceError> {
+        // Resilience 配置
+        let retry = self
+            .base
+            .exchange
+            .resilience_registries
+            .retry(REQUEST_WEIGHT_RATE_LIMITER);
+        let limiter = self
+            .base
+            .exchange
+            .resilience_registries
+            .rate_limiter(REQUEST_WEIGHT_RATE_LIMITER)
+            .as_ref()
+            .cloned();
+
+        // 提前准备常量数据
+        let spot_client = self.base.client.spot.clone();
+        let instrument_kind = InstrumentKind::CurrencyPair(pair.clone());
+        let pair_symbol = BinanceAdapters::to_symbol(&instrument_kind);
+        let interval_code = interval.code().to_string();
+
+        // Query 转换提前构造
+        let limit_q: Option<Query<u16>> = limit.map(|v| Query(v as u16));
+        let start_q: Option<Query<u64>> = start_time.map(Query);
+        let end_q: Option<Query<u64>> = end_time.map(Query);
+
+        // ResilientCall
+        let mut resilient = ResilientCall::new({
+            // 全部 clone，闭包里直接 move
+            let spot_client = spot_client.clone();
+            let instrument_kind = instrument_kind.clone();
+            let pair_symbol = pair_symbol.clone();
+            let interval = interval.clone();
+            let interval_code = interval_code.clone();
+            let limit_q = limit_q.clone();
+            let start_q = start_q.clone();
+            let end_q = end_q.clone();
+
+            move || {
+                let spot_client = spot_client.clone();
+                let instrument_kind = instrument_kind.clone();
+                let interval = interval.clone();
+                let pair_symbol = pair_symbol.clone();
+                let interval_code = interval_code.clone();
+                let limit_q = limit_q.clone();
+                let start_q = start_q.clone();
+                let end_q = end_q.clone();
+
+                async move {
+                    let raw: Vec<Vec<serde_json::Value>> = spot_client
+                        .klines(
+                            Query(pair_symbol.as_str()),
+                            Query(interval_code.as_str()),
+                            limit_q,
+                            start_q,
+                            end_q,
+                        )
+                        .await
+                        .map_err(boxed)?;
+
+                    Ok(raw
+                        .into_iter()
+                        .map(|v| BinanceKline::new(&instrument_kind, &interval, v.as_slice()))
+                        .collect::<Vec<BinanceKline>>())
+                }
+            }
+        });
+
+        // 应用 retry / rate limiter
+        if let Some(r) = retry {
+            resilient = resilient.with_retry(r);
+        }
+        if let Some(l) = limiter {
+            resilient = resilient.with_rate_limiter(l);
         }
 
         resilient.call().await.map_err(|e| BinanceError::from(e))

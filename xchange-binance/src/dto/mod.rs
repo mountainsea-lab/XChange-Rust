@@ -1,5 +1,5 @@
 pub mod account;
-mod marketdata;
+pub mod marketdata;
 pub mod meta;
 
 use serde::Deserialize;
@@ -56,6 +56,9 @@ pub enum BinanceError {
 
     #[error("Invalid Param: {0}")]
     InvalidParam(String),
+
+    #[error("Message Description: {0}")]
+    Message(String),
 }
 
 impl From<Box<dyn std::error::Error + Send + Sync>> for BinanceError {
