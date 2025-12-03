@@ -1,5 +1,6 @@
 use crate::binance_exchange::BinanceExchange;
 use crate::dto::BinanceError;
+use crate::dto::marketdata::binance_kline::BinanceKline;
 use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
 use crate::service::market_data_service_inner::MarketDataInner;
@@ -31,6 +32,9 @@ impl BinanceMarketDataService {
             binance_time => BinanceTime,
             system_status => BinanceSystemStatus,
             exchange_info => BinanceExchangeInfo,
+            last_klines => BinanceKline,
+            klines_with_limit => Vec<BinanceKline>,
+            klines => Vec<BinanceKline>,
             future_exchange_info => BinanceExchangeInfo,
         }
     }
