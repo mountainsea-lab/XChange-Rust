@@ -1,16 +1,16 @@
 use retrofit_rs::RetrofitError;
-use xchange_binance::client::binance::BinancePub;
-// use xchange_binance::client::binance_authed::BinanceAuthenticatedClient;
 use xchange_binance::client::BinanceClient;
+use xchange_binance::client::binance_spot::BinanceAuthed;
+use xchange_core::exchange::ExchangeType;
 
 #[tokio::test]
 async fn test_binance_ping() -> Result<(), RetrofitError> {
     let base_url = "https://api.binance.com";
 
-    let client = BinanceClient::new_public(base_url)?;
+    let client = BinanceClient::new_with_exchange_type(base_url, None, Some(ExchangeType::Spot))?;
 
     // 调用真实 Binance ping
-    let resp = client.public.ping().await?;
+    let resp = client.spot.ping().await?;
 
     // Binance 的 ping 返回 "{}"
     assert!(resp.is_object());
@@ -20,9 +20,9 @@ async fn test_binance_ping() -> Result<(), RetrofitError> {
 }
 #[tokio::test]
 async fn test_binance_system_status() -> Result<(), RetrofitError> {
-    let client = BinanceClient::new_public("https://api.binance.com")?;
-
-    let status = client.public.system_status().await?;
+    let base_url = "https://api.binance.com";
+    let client = BinanceClient::new_with_exchange_type(base_url, None, None)?;
+    let status = client.spot.system_status().await?;
 
     println!("system status = {:?}", status);
 
@@ -35,9 +35,10 @@ async fn test_binance_system_status() -> Result<(), RetrofitError> {
 
 #[tokio::test]
 async fn test_binance_time() -> Result<(), RetrofitError> {
-    let client = BinanceClient::new_public("https://api.binance.com")?;
+    let base_url = "https://api.binance.com";
+    let client = BinanceClient::new_with_exchange_type(base_url, None, Some(ExchangeType::Spot))?;
 
-    let binance_time = client.public.time().await?;
+    let binance_time = client.spot.time().await?;
 
     println!("server time = {:?}", binance_time);
 
@@ -49,9 +50,10 @@ async fn test_binance_time() -> Result<(), RetrofitError> {
 
 #[tokio::test]
 async fn test_binance_exchange_info() -> Result<(), RetrofitError> {
-    let client = BinanceClient::new_public("https://api.binance.com")?;
+    let base_url = "https://api.binance.com";
+    let client = BinanceClient::new_with_exchange_type(base_url, None, Some(ExchangeType::Spot))?;
 
-    let info = client.public.exchange_info().await?;
+    let info = client.spot.exchange_info().await?;
 
     println!("exchange info symbols = {}", info.symbols.len());
 
