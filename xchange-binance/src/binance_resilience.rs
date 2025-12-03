@@ -3,6 +3,16 @@ use std::time::Duration;
 use xchange_core::client::RateLimiter;
 use xchange_core::client::ResilienceRegistries;
 
+pub const REQUEST_WEIGHT_RATE_LIMITER: &'static str = "requestWeight";
+
+// Spot
+pub const ORDERS_PER_SECOND: &'static str = "ordersPerSecond";
+pub const RAW_REQUESTS: &'static str = "rawRequests";
+
+// Futures
+pub const ORDERS_PER_10_SECONDS: &'static str = "ordersPer10Seconds";
+pub const ORDERS_PER_MINUTE: &'static str = "ordersPerMinute";
+
 /// ========================
 /// Binance 默认 Resilience 注册表
 /// ========================
@@ -11,29 +21,19 @@ pub struct BinanceResilience {
 }
 
 impl BinanceResilience {
-    pub const REQUEST_WEIGHT: &'static str = "requestWeight";
-
-    // Spot
-    pub const ORDERS_PER_SECOND: &'static str = "ordersPerSecond";
-    pub const RAW_REQUESTS: &'static str = "rawRequests";
-
-    // Futures
-    pub const ORDERS_PER_10_SECONDS: &'static str = "ordersPer10Seconds";
-    pub const ORDERS_PER_MINUTE: &'static str = "ordersPerMinute";
-
     pub fn new_spot() -> Self {
         let mut registries = ResilienceRegistries::new();
 
         registries.rate_limiters.insert(
-            Self::REQUEST_WEIGHT.into(),
+            REQUEST_WEIGHT_RATE_LIMITER.into(),
             Arc::new(RateLimiter::new(6000, Duration::from_secs(60))),
         );
         registries.rate_limiters.insert(
-            Self::ORDERS_PER_SECOND.into(),
+            ORDERS_PER_SECOND.into(),
             Arc::new(RateLimiter::new(10, Duration::from_secs(1))),
         );
         registries.rate_limiters.insert(
-            Self::RAW_REQUESTS.into(),
+            REQUEST_WEIGHT_RATE_LIMITER.into(),
             Arc::new(RateLimiter::new(61000, Duration::from_secs(5 * 60))),
         );
 
@@ -44,25 +44,25 @@ impl BinanceResilience {
         let mut registries = ResilienceRegistries::new();
 
         registries.rate_limiters.insert(
-            Self::REQUEST_WEIGHT.into(),
+            REQUEST_WEIGHT_RATE_LIMITER.into(),
             Arc::new(RateLimiter::new(2400, Duration::from_secs(60))),
         );
         registries.rate_limiters.insert(
-            Self::ORDERS_PER_10_SECONDS.into(),
+            ORDERS_PER_10_SECONDS.into(),
             Arc::new(RateLimiter::new(300, Duration::from_secs(10))),
         );
         registries.rate_limiters.insert(
-            Self::ORDERS_PER_MINUTE.into(),
+            ORDERS_PER_MINUTE.into(),
             Arc::new(RateLimiter::new(1200, Duration::from_secs(60))),
         );
 
         // Spot limiters unlimited for compatibility
         registries.rate_limiters.insert(
-            Self::ORDERS_PER_SECOND.into(),
+            ORDERS_PER_SECOND.into(),
             Arc::new(RateLimiter::new(u32::MAX as usize, Duration::from_secs(1))),
         );
         registries.rate_limiters.insert(
-            Self::RAW_REQUESTS.into(),
+            RAW_REQUESTS.into(),
             Arc::new(RateLimiter::new(u32::MAX as usize, Duration::from_secs(1))),
         );
 

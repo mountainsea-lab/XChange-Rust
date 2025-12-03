@@ -1,67 +1,84 @@
-use crate::client::binance::BinancePubClient;
-use crate::client::binance_authed::BinanceAuthedClient;
+use crate::binance_exchange::{FUTURES_URL, INVERSE_FUTURES_URL};
 use crate::client::binance_futures::BinanceFuturesAuthedClient;
-use crate::client::binance_futures::BinanceFuturesClient;
+use crate::client::binance_spot::BinanceAuthedClient;
 use retrofit_rs::async_client::interceptors::AuthInterceptor;
 use retrofit_rs::{Retrofit, RetrofitError};
+use std::sync::Arc;
+use xchange_core::exchange::ExchangeType;
 
-pub mod binance;
-pub mod binance_authed;
 pub(crate) mod binance_futures;
+pub mod binance_spot;
 
 pub struct BinanceClient {
-    pub public: BinancePubClient,
-    pub auth: Option<BinanceAuthedClient>,
-    pub futures: Option<BinanceFuturesClient>,
-    pub futures_authed: Option<BinanceFuturesAuthedClient>,
+    /// Spot API（带鉴权，默认会创建）
+    pub spot: Arc<BinanceAuthedClient>,
+
+    /// USDT-M Futures（可选）
+    pub futures: Option<Arc<BinanceFuturesAuthedClient>>,
+
+    /// Inverse Futures（可选）
+    pub futures_inverse: Option<Arc<BinanceFuturesAuthedClient>>,
 }
 
 impl BinanceClient {
-    /// 创建公开接口客户端
-    pub fn new_public(base_url: &str) -> Result<Self, RetrofitError> {
-        let retrofit = Retrofit::builder().base_url(base_url).build()?;
+    pub fn new_with_exchange_type(
+        base_url: &str,
+        api_key: Option<&str>,
+        exchange_type: Option<ExchangeType>,
+    ) -> Result<Self, RetrofitError> {
+        // ---------------------
+        // 内部辅助函数：创建 client
+        // ---------------------
+        fn make_client<T>(
+            base_url: &str,
+            api_key: Option<&str>,
+            constructor: impl Fn(Retrofit) -> T,
+        ) -> Result<Arc<T>, RetrofitError> {
+            let mut builder = Retrofit::builder().base_url(base_url);
+            if let Some(key) = api_key {
+                builder = builder.add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", key));
+            }
+            let retrofit = builder.build()?;
+            Ok(Arc::new(constructor(retrofit)))
+        }
 
-        let public = BinancePubClient::with_client(retrofit);
+        // ---------------------
+        // 1) Spot client（公有或带鉴权）
+        // ---------------------
+        let spot: Arc<_> = if api_key.is_some() {
+            make_client(base_url, api_key, BinanceAuthedClient::with_client)?
+        } else {
+            make_client(base_url, None, BinanceAuthedClient::with_client)?
+        };
+
+        // ---------------------
+        // 2) Futures / Inverse Futures
+        // ---------------------
+        let (futures, futures_inverse) = match (api_key, exchange_type) {
+            (Some(key), Some(ExchangeType::Futures))
+            | (Some(key), Some(ExchangeType::PortfolioMargin)) => (
+                Some(make_client(
+                    FUTURES_URL,
+                    Some(key),
+                    BinanceFuturesAuthedClient::with_client,
+                )?),
+                None,
+            ),
+            (Some(key), Some(ExchangeType::Inverse)) => (
+                None,
+                Some(make_client(
+                    INVERSE_FUTURES_URL,
+                    Some(key),
+                    BinanceFuturesAuthedClient::with_client,
+                )?),
+            ),
+            _ => (None, None),
+        };
 
         Ok(Self {
-            public,
-            auth: None,
-            futures: None,
-            futures_authed: None,
+            spot,
+            futures,
+            futures_inverse,
         })
-    }
-
-    /// 创建带鉴权客户端
-    pub fn new_authenticated(base_url: &str, api_key: &str) -> Result<Self, RetrofitError> {
-        let retrofit = Retrofit::builder()
-            .base_url(base_url)
-            .add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", api_key))
-            .build()?;
-
-        let public = BinancePubClient::with_client(retrofit.clone());
-        let auth = BinanceAuthedClient::with_client(retrofit);
-
-        Ok(Self {
-            public,
-            auth: Some(auth),
-            futures: None,
-            futures_authed: None,
-        })
-    }
-
-    /// 单独构建 futures/inverse 客户端并 attach 到 self（在 Arc 之前调用）
-    /// - futures_url: FUTURES_URL or INVERSE_FUTURES_URL
-    pub fn new_authed(&mut self, futures_url: &str, api_key: &str) -> Result<(), RetrofitError> {
-        let fut_retrofit = Retrofit::builder()
-            .base_url(futures_url)
-            .add_interceptor(AuthInterceptor::api_key("X-MBX-APIKEY", api_key))
-            .build()?;
-
-        let fut_pub = BinanceFuturesClient::with_client(fut_retrofit.clone());
-        let fut_auth = BinanceFuturesAuthedClient::with_client(fut_retrofit);
-
-        self.futures = Some(fut_pub);
-        self.futures_authed = Some(fut_auth);
-        Ok(())
     }
 }

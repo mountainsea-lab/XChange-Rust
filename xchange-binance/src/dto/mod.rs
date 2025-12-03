@@ -3,11 +3,8 @@ pub mod meta;
 
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt;
 use thiserror::Error;
-use xchange_core::error::ExchangeErrorDetail;
-use xchange_core::error::exchange_error::ExchangeError;
 use xchange_core::rescu::params_digest::DigestError;
 
 #[derive(Debug, Error)]
@@ -39,11 +36,17 @@ pub enum BinanceError {
     #[error("Acquire rate limiter failed: {0}")]
     AcquireRateLimiter(#[source] Box<dyn std::error::Error + Send + Sync>),
 
+    #[error("Api Call Failed: {0}")]
+    ApiCallFailed(#[source] Box<dyn std::error::Error + Send + Sync>),
+
     #[error("Digest error: {0}")]
     Digest(#[from] DigestError),
 
     #[error("Service Not Initialized: {0}")]
     ServiceNotInitialized(String),
+
+    #[error("Client Not Initialized: {0}")]
+    ClientNotInitialized(String),
 
     #[error("Invalid Key: {0}")]
     InvalidKey(String),
@@ -52,24 +55,9 @@ pub enum BinanceError {
     InvalidParam(String),
 }
 
-impl ExchangeErrorDetail for BinanceError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            BinanceError::Http(e) => Some(e),
-            BinanceError::Io(e) => Some(e),
-            BinanceError::Json(e) => Some(e),
-            BinanceError::Retrofit(e) => Some(e),
-            BinanceError::Digest(e) => Some(e),
-            BinanceError::TimeProvider(e) => Some(&**e),
-            BinanceError::AcquireRateLimiter(e) => Some(&**e),
-            _ => None,
-        }
-    }
-}
-
-impl From<BinanceError> for ExchangeError {
-    fn from(err: BinanceError) -> Self {
-        ExchangeError::Custom(Box::new(err))
+impl From<Box<dyn std::error::Error + Send + Sync>> for BinanceError {
+    fn from(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        BinanceError::ApiCallFailed(e)
     }
 }
 
