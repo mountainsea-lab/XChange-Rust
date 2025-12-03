@@ -31,13 +31,14 @@ pub trait BinanceAuthed {
     ) -> Result<serde_json::Value, RetrofitError>;
 
     #[get("/api/v3/klines")]
+    #[allow(non_snake_case)]
     async fn klines(
         &self,
         symbol: Query<&str>,
         interval: Query<&str>,
         limit: Option<Query<u16>>,
-        start_time: Option<Query<u64>>,
-        end_time: Option<Query<u64>>,
+        startTime: Option<Query<u64>>,
+        endTime: Option<Query<u64>>,
     ) -> Result<Vec<Vec<serde_json::Value>>, RetrofitError>;
 
     // DELETE, PUT 等方法同理
