@@ -1,10 +1,12 @@
 use crate::binance_exchange::{BinanceExchange, EXCHANGE_TYPE_KEY};
 use crate::client::BinanceClient;
+use crate::client::binance_spot::BinanceAuthed;
 use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::BinanceSystemStatus;
 use crate::service::{BinanceEd25519Digest, BinanceHmacDigest};
 use std::sync::Arc;
 use xchange_core::ValueFactory;
+use xchange_core::client::{ResilientCall, boxed};
 use xchange_core::exchange_specification::ExchangeParam;
 use xchange_core::rescu::params_digest::ParamsDigest;
 
@@ -105,9 +107,13 @@ impl BinanceBaseService {
     }
 
     pub async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError> {
-        // decorate_api_call 模拟 Java 的 decorateApiCall
-        let client = self.client.clone();
-        // client.system_status().await
-        todo!()
+        let spot_client = self.client.spot.clone();
+
+        let mut resilient = ResilientCall::new(move || {
+            let auth_client = spot_client.clone();
+            async move { auth_client.system_status().await.map_err(boxed) }
+        });
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
     }
 }

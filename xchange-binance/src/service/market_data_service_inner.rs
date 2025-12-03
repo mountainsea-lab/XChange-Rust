@@ -2,7 +2,7 @@ use crate::binance_exchange::BinanceExchange;
 use crate::binance_resilience::REQUEST_WEIGHT_RATE_LIMITER;
 use crate::client::binance_spot::BinanceAuthed;
 use crate::dto::BinanceError;
-use crate::dto::meta::binance_system::BinanceTime;
+use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
 use crate::service::binance_base_service::BinanceBaseService;
 use std::sync::Arc;
@@ -47,6 +47,11 @@ impl MarketDataInner {
 
         Ok(())
     }
+
+    pub async fn system_status(&self) -> Result<BinanceSystemStatus, BinanceError> {
+        self.base.system_status().await
+    }
+
     pub async fn binance_time(&self) -> Result<BinanceTime, BinanceError> {
         let retry = self
             .base
