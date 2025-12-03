@@ -43,38 +43,31 @@ pub struct BinanceExchange {
 }
 
 impl BinanceExchange {
-    pub async fn new() -> Result<Arc<Self>, BinanceError> {
+    pub async fn new() -> Result<Self, BinanceError> {
         let resilience_registries = Arc::new(ResilienceRegistries::new());
         let spec = Self::default_exchange_specification();
-        // 占位 Arc<Self> 用于初始化服务
-        let exchange = Arc::new_cyclic(|weak_self| {
-            let base = Arc::new(BaseExchange {
+        let exchange = Self {
+            base: Arc::new(BaseExchange {
                 spec: Arc::new(RwLock::new(spec.clone())),
                 meta_data: Arc::new(RwLock::new(ExchangeMetaData::default())),
                 nonce_factory: Arc::new(BinanceTimeProvider::new(
                     spec.resilience,
                     resilience_registries.clone(),
                 )),
-
                 market_service: RwLock::new(None),
                 trade_service: RwLock::new(None),
                 account_service: RwLock::new(None),
-            });
-
-            let timestamp_provider = Arc::new(BinanceTimeProvider::new(
+            }),
+            timestamp_provider: Arc::new(BinanceTimeProvider::new(
                 spec.resilience,
                 resilience_registries.clone(),
-            ));
-
-            Self {
-                base,
-                timestamp_provider,
-                resilience_registries,
-                self_arc: weak_self.clone(),
-            }
-        });
+            )),
+            resilience_registries,
+            self_arc: Weak::new(), // 之后再设置 weak_self
+        };
         Ok(exchange)
     }
+
     /// 默认初始化（开箱即用）
     pub async fn default() -> Result<Arc<Self>, BinanceError> {
         let spec = Self::default_exchange_specification();
@@ -222,11 +215,11 @@ impl BinanceExchange {
         // 重新初始化依赖服务
         self.init_services()?;
 
-        // 更新 timestamp_provider
-        self.timestamp_provider = Arc::new(BinanceTimeProvider::new(
-            self.base.spec.read().resilience.clone(),
-            self.resilience_registries.clone(),
-        ));
+        // // 更新 timestamp_provider
+        // self.timestamp_provider = Arc::new(BinanceTimeProvider::new(
+        //     self.base.spec.read().resilience.clone(),
+        //     self.resilience_registries.clone(),
+        // ));
 
         Ok(())
     }
