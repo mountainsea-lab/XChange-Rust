@@ -9,6 +9,7 @@ use xchange_core::error::exchange_error::ExchangeError;
 use xchange_core::service::BaseService;
 use xchange_core::service::account::account_service::AccountService;
 
+#[derive(Clone)]
 pub struct BinanceAccountService {
     raw: Arc<BinanceAccountServiceRaw>,
 }
@@ -23,10 +24,6 @@ impl BinanceAccountService {
 
 #[async_trait]
 impl AccountService for BinanceAccountService {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         // future implementation:
         // - 根据 ExchangeType 调用 raw.account / raw.futures_account
@@ -36,4 +33,8 @@ impl AccountService for BinanceAccountService {
         unimplemented!("BinanceAccountService::get_account_info is not implemented yet");
     }
 }
-impl BaseService for BinanceAccountService {}
+impl BaseService for BinanceAccountService {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}

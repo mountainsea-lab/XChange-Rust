@@ -3,13 +3,17 @@ use crate::dto::trade::limit_order::LimitOrder;
 use crate::dto::trade::market_order::MarketOrder;
 use crate::exchange::Exchange;
 use async_trait::async_trait;
+use std::any::Any;
+use std::sync::Arc;
 
 pub mod account;
 pub mod marketdata;
 pub mod trade;
 
-#[async_trait]
-pub trait BaseService: Send + Sync {}
+// #[async_trait]
+pub trait BaseService: Send + Sync {
+    fn as_any(&self) -> &dyn Any;
+}
 
 pub trait ExchangeService<E: Exchange> {
     fn exchange(&self) -> &E;

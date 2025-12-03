@@ -11,6 +11,7 @@ use xchange_core::service::BaseService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
 
 /// Binance Market Data Service
+#[derive(Clone)]
 pub struct BinanceMarketDataService {
     inner: Arc<MarketDataInner>,
 }
@@ -38,10 +39,6 @@ impl BinanceMarketDataService {
 /// 实现 MarketDataService trait
 #[async_trait]
 impl MarketDataService for BinanceMarketDataService {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     /// 默认实现 ExchangeHealth
     async fn exchange_health(&self) -> ExchangeHealth {
         // 调用 system_status()，由宏生成的 async 方法
@@ -60,4 +57,8 @@ impl MarketDataService for BinanceMarketDataService {
 
     // 其他 trait 方法可以继续占位实现
 }
-impl BaseService for BinanceMarketDataService {}
+impl BaseService for BinanceMarketDataService {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}

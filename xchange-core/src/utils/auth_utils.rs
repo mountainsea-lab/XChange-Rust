@@ -1,6 +1,5 @@
 use crate::exchange_specification::ExchangeSpecification;
 use base64::{Engine, engine::general_purpose};
-use hmac::digest::typenum::private::Trim;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;

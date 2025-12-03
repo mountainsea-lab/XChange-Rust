@@ -2,6 +2,7 @@ pub mod auth_utils;
 pub mod time_nonce;
 
 use crate::error::exchange_error::ExchangeError;
+use crate::service::BaseService;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Deserialize;
 use serde::de::{self, Deserializer};
@@ -43,18 +44,26 @@ where
         .ok_or_else(|| de::Error::custom(format!("Invalid timestamp: {}", ts_millis)))
 }
 
-// 泛型获取 Exchange 内具体服务
-// pub fn get_concrete_service<T: 'static>(
-//     service: Arc<dyn Any + Send + Sync>,
-// ) -> Result<Arc<T>, ExchangeError> {
-//     service
-//         .as_any()
-//         .downcast_ref::<T>()
-//         .map(|s| Arc::clone(s)) // 直接 clone Arc
-//         .ok_or_else(|| {
-//             ExchangeError::Message(format!(
-//                 "Failed to downcast service to {}",
-//                 std::any::type_name::<T>()
-//             ))
-//         })
-// }
+// 泛型获取 Exchange Service 具体服务
+fn service_ref<T: 'static, S: BaseService + ?Sized>(service: &Arc<S>) -> &T {
+    service
+        .as_ref()
+        .as_any()
+        .downcast_ref::<T>()
+        .expect("Wrong Service Type")
+}
+
+/// 获取具体服务类型的 Arc
+///
+/// # 要求
+/// T: 'static + Send + Sync + Clone
+///
+pub fn service_arc<T: 'static + Send + Sync + Clone, S: BaseService + ?Sized>(
+    service: &Arc<S>,
+) -> Arc<T> {
+    let concrete_ref: &T = service_ref(service);
+
+    // 这里将引用包装进 Arc，这里不会释放原来的 Arc
+    // 注意：原 Arc 和新 Arc 指向不同对象，如果 T 不是 Clone，这里会创建一个新的 Arc 包装
+    Arc::new(concrete_ref.clone())
+}

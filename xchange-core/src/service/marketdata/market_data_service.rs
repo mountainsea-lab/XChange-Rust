@@ -9,12 +9,10 @@ use crate::instrument::InstrumentDTO;
 use crate::service::BaseService;
 use crate::service::marketdata::params::Params;
 use async_trait::async_trait;
-use std::any::Any;
 
 /// Service to explore market data
 #[async_trait]
 pub trait MarketDataService: BaseService + Send + Sync {
-    fn as_any(&self) -> &dyn Any;
     /// Get the exchange health
     async fn exchange_health(&self) -> ExchangeHealth {
         ExchangeHealth::Online

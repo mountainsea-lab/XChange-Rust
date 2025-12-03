@@ -12,6 +12,7 @@ use xchange_core::error::exchange_error::{ExchangeError, ExchangeUnavailableErro
 use xchange_core::exchange::{BaseExchange, Exchange, ExchangeType};
 use xchange_core::exchange_specification::{ExchangeParam, ExchangeSpecification};
 use xchange_core::instrument::Instrument;
+use xchange_core::service::BaseService;
 use xchange_core::service::account::account_service::AccountService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
 use xchange_core::service::trade::trade_service::TradeService;
@@ -262,6 +263,15 @@ impl BinanceExchange {
 
         spec
     }
+
+    // /// 泛型获取具体服务类型
+    // pub fn service_as<T: 'static, S: BaseService + ?Sized>(service: &Arc<S>) -> Arc<T> {
+    //     let any_ref = service.as_ref().as_any();
+    //     any_ref
+    //         .downcast_ref::<T>()
+    //         .map(|_| Arc::clone(service).downcast::<T>().unwrap())
+    //         .expect("Service type mismatch")
+    // }
 }
 
 // ----------------- Exchange trait impl -----------------
