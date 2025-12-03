@@ -49,7 +49,11 @@ pub trait Exchange: Send + Sync {
 
     fn default_exchange_specification(&self) -> Arc<ExchangeSpecification>;
 
-    fn apply_specification(&mut self, spec: ExchangeSpecification) -> Result<(), ExchangeError>;
+    // fn apply_specification(&mut self, spec: ExchangeSpecification) -> Result<(), ExchangeError>;
+    fn apply_specification(
+        self: &Arc<Self>,
+        spec: ExchangeSpecification,
+    ) -> Result<(), ExchangeError>;
 
     fn market_data_service(
         &self,

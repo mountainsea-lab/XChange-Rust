@@ -4,6 +4,7 @@ use xchange_binance::binance_exchange::BinanceExchange;
 use xchange_binance::dto::BinanceError;
 use xchange_binance::service::account_service::BinanceAccountService;
 use xchange_binance::service::market_data_service::BinanceMarketDataService;
+use xchange_core::exchange::Exchange;
 use xchange_core::exchange_specification::ExchangeParam;
 
 async fn default_exchange() -> Result<Arc<BinanceExchange>, BinanceError> {
@@ -21,7 +22,7 @@ async fn new_exchange() -> Result<Arc<BinanceExchange>, BinanceError> {
         ExchangeParam::Boolean(true),
     );
     let _ = exchange.apply_specification(spec);
-    Ok(Arc::new(exchange))
+    Ok(exchange)
 }
 
 #[tokio::test]

@@ -1,10 +1,13 @@
 pub mod auth_utils;
 pub mod time_nonce;
 
+use crate::error::exchange_error::ExchangeError;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Deserialize;
 use serde::de::{self, Deserializer};
 use serde_json::Value;
+use std::any::Any;
+use std::sync::Arc;
 
 /// 辅助函数：尝试 Display，否则 Debug
 pub fn display_value<T: std::fmt::Debug + 'static>(value: &T) -> String {
@@ -39,3 +42,19 @@ where
         .single()
         .ok_or_else(|| de::Error::custom(format!("Invalid timestamp: {}", ts_millis)))
 }
+
+// 泛型获取 Exchange 内具体服务
+// pub fn get_concrete_service<T: 'static>(
+//     service: Arc<dyn Any + Send + Sync>,
+// ) -> Result<Arc<T>, ExchangeError> {
+//     service
+//         .as_any()
+//         .downcast_ref::<T>()
+//         .map(|s| Arc::clone(s)) // 直接 clone Arc
+//         .ok_or_else(|| {
+//             ExchangeError::Message(format!(
+//                 "Failed to downcast service to {}",
+//                 std::any::type_name::<T>()
+//             ))
+//         })
+// }
