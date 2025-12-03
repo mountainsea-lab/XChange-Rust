@@ -3,7 +3,6 @@ use crate::dto::BinanceError;
 use crate::service::account_service::BinanceAccountService;
 use crate::service::market_data_service::BinanceMarketDataService;
 use parking_lot::RwLock;
-use std::any::Any;
 use std::sync::{Arc, Weak};
 use xchange_core::ValueFactory;
 use xchange_core::client::ResilienceRegistries;
@@ -12,7 +11,6 @@ use xchange_core::error::exchange_error::{ExchangeError, ExchangeUnavailableErro
 use xchange_core::exchange::{BaseExchange, Exchange, ExchangeType};
 use xchange_core::exchange_specification::{ExchangeParam, ExchangeSpecification};
 use xchange_core::instrument::Instrument;
-use xchange_core::service::BaseService;
 use xchange_core::service::account::account_service::AccountService;
 use xchange_core::service::marketdata::market_data_service::MarketDataService;
 use xchange_core::service::trade::trade_service::TradeService;
@@ -211,30 +209,6 @@ impl BinanceExchange {
         spec.api_key.is_some() && spec.secret_key.is_some()
     }
 
-    // /// --------------------------
-    // /// 动态应用新的 ExchangeSpecification（线程安全）
-    // /// --------------------------
-    // pub fn apply_specification(
-    //     &mut self,
-    //     mut spec: ExchangeSpecification,
-    // ) -> Result<(), BinanceError> {
-    //     Self::conclude_host_params(&mut spec);
-    //
-    //     // 更新 spec
-    //     *self.base.spec.write() = spec;
-    //
-    //     // 重新初始化依赖服务
-    //     self.init_services()?;
-    //
-    //     // // 更新 timestamp_provider
-    //     // self.timestamp_provider = Arc::new(BinanceTimeProvider::new(
-    //     //     self.base.spec.read().resilience.clone(),
-    //     //     self.resilience_registries.clone(),
-    //     // ));
-    //
-    //     Ok(())
-    // }
-
     /// 获取 Resilience 注册表（可懒初始化）
     pub fn get_resilience_registries(&self) -> Arc<ResilienceRegistries> {
         self.resilience_registries.clone()
@@ -263,15 +237,6 @@ impl BinanceExchange {
 
         spec
     }
-
-    // /// 泛型获取具体服务类型
-    // pub fn service_as<T: 'static, S: BaseService + ?Sized>(service: &Arc<S>) -> Arc<T> {
-    //     let any_ref = service.as_ref().as_any();
-    //     any_ref
-    //         .downcast_ref::<T>()
-    //         .map(|_| Arc::clone(service).downcast::<T>().unwrap())
-    //         .expect("Service type mismatch")
-    // }
 }
 
 // ----------------- Exchange trait impl -----------------

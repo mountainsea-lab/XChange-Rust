@@ -13,7 +13,7 @@ pub struct FuturesContract {
     // The CurrencyPair the FuturesContract is based upon
     currency_pair: Arc<CurrencyPair>,
     // The Date when the FuturesContract expires, when null it is perpetual
-    pub(crate) prompt: Option<String>, // null ⇒ perpetual
+    pub prompt: Option<String>, // None ⇒ perpetual
 }
 
 impl FuturesContract {
