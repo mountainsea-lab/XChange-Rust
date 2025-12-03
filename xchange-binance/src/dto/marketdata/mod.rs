@@ -1,3 +1,5 @@
+pub mod binance_kline;
+
 use serde::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::fmt;
