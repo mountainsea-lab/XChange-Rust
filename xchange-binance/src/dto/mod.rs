@@ -5,6 +5,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt;
 use thiserror::Error;
+use xchange_core::error::ExchangeErrorDetail;
+use xchange_core::error::exchange_error::ExchangeError;
 use xchange_core::rescu::params_digest::DigestError;
 
 #[derive(Debug, Error)]
@@ -58,6 +60,14 @@ pub enum BinanceError {
 impl From<Box<dyn std::error::Error + Send + Sync>> for BinanceError {
     fn from(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
         BinanceError::ApiCallFailed(e)
+    }
+}
+
+impl ExchangeErrorDetail for BinanceError {}
+
+impl From<BinanceError> for ExchangeError {
+    fn from(err: BinanceError) -> Self {
+        ExchangeError::Custom(Box::new(err))
     }
 }
 
