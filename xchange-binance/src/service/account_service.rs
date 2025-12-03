@@ -2,6 +2,7 @@ use crate::binance_exchange::BinanceExchange;
 use crate::dto::BinanceError;
 use crate::service::binance_account_service_raw::BinanceAccountServiceRaw;
 use async_trait::async_trait;
+use std::any::Any;
 use std::sync::Arc;
 use xchange_core::dto::account::account_info::AccountInfo;
 use xchange_core::error::exchange_error::ExchangeError;
@@ -22,6 +23,10 @@ impl BinanceAccountService {
 
 #[async_trait]
 impl AccountService for BinanceAccountService {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         // future implementation:
         // - 根据 ExchangeType 调用 raw.account / raw.futures_account

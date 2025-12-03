@@ -4,6 +4,7 @@ use crate::dto::meta::binance_system::{BinanceSystemStatus, BinanceTime};
 use crate::dto::meta::exchange_info::BinanceExchangeInfo;
 use crate::service::market_data_service_inner::MarketDataInner;
 use async_trait::async_trait;
+use std::any::Any;
 use std::sync::Arc;
 use xchange_core::dto::meta::ExchangeHealth;
 use xchange_core::service::BaseService;
@@ -37,6 +38,10 @@ impl BinanceMarketDataService {
 /// 实现 MarketDataService trait
 #[async_trait]
 impl MarketDataService for BinanceMarketDataService {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     /// 默认实现 ExchangeHealth
     async fn exchange_health(&self) -> ExchangeHealth {
         // 调用 system_status()，由宏生成的 async 方法

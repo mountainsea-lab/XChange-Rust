@@ -30,7 +30,7 @@ pub const SANDBOX_INVERSE_FUTURES_URL: &str = "https://testnet.binancefuture.com
 
 // ----------------- BinanceExchange -----------------
 pub struct BinanceExchange {
-    pub self_arc: Weak<BinanceExchange>,
+    self_arc: Weak<BinanceExchange>,
 
     /// 完全拥有 BaseExchange，spec 可动态修改
     pub base: Arc<BaseExchange>,

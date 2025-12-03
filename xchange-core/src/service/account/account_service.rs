@@ -9,12 +9,15 @@ use crate::service::BaseService;
 use crate::service::account::params::RequestDepositAddressParams;
 use crate::service::trade::params::TradeHistoryParams;
 use async_trait::async_trait;
+use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 /// AccountService inherits BaseService functionality.
 #[async_trait]
 pub trait AccountService: BaseService + Send + Sync {
+    fn as_any(&self) -> &dyn Any;
+
     async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         Err(NotYetImplementedForExchangeError::with_message("get_account_info").into())
     }
