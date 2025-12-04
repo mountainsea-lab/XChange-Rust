@@ -115,6 +115,27 @@ async fn test_exchange_info() {
 }
 
 #[tokio::test]
+async fn test_futures_exchange_info() {
+    let exchange = new_exchange_futures()
+        .await
+        .expect("default() should succeed");
+    let service: Arc<dyn MarketDataService + Send + Sync> = exchange.market_data_service().unwrap();
+
+    let market: Arc<BinanceMarketDataService> = service_arc(&service);
+
+    let result = market.future_exchange_info().await;
+    assert!(result.is_ok(), "exchange_info() should succeed");
+
+    let info: BinanceExchangeInfo = result.unwrap();
+    println!("BinanceExchangeInfo = {:?}", info);
+
+    assert!(
+        !info.symbols.is_empty(),
+        "exchange_info symbols should not be empty"
+    );
+}
+
+#[tokio::test]
 async fn test_klines_default_limit() {
     // 1. 初始化 exchange
     let exchange = default_exchange()
