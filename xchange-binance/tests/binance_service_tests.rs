@@ -124,15 +124,25 @@ async fn test_futures_exchange_info() {
     let market: Arc<BinanceMarketDataService> = service_arc(&service);
 
     let result = market.future_exchange_info().await;
-    assert!(result.is_ok(), "exchange_info() should succeed");
-
-    let info: BinanceExchangeInfo = result.unwrap();
-    println!("BinanceExchangeInfo = {:?}", info);
-
-    assert!(
-        !info.symbols.is_empty(),
-        "exchange_info symbols should not be empty"
-    );
+    match result {
+        Ok(info) => {
+            println!("Exchange info: {:?}", info);
+            assert!(!info.symbols.is_empty());
+        }
+        Err(err) => {
+            panic!("Failed to fetch exchange info: {:?}", err);
+        }
+    }
+    //
+    // assert!(result.is_ok(), "exchange_info() should succeed");
+    //
+    // let info: BinanceExchangeInfo = result.unwrap();
+    // println!("BinanceExchangeInfo = {:?}", info);
+    //
+    // assert!(
+    //     !info.symbols.is_empty(),
+    //     "exchange_info symbols should not be empty"
+    // );
 }
 
 #[tokio::test]

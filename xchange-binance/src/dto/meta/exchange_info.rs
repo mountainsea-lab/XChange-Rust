@@ -53,29 +53,6 @@ impl std::fmt::Display for RateLimit {
     }
 }
 
-/// Rust equivalent of Java `Symbol`.
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// #[serde(rename_all = "camelCase")]
-// pub struct Symbol {
-//     pub quote_asset: String,
-//     pub iceberg_allowed: String,
-//     pub oco_allowed: String,
-//     pub is_margin_trading_allowed: String,
-//     pub is_spot_trading_allowed: String,
-//     pub base_asset: String,
-//     pub symbol: String,
-//     pub status: String,
-//     pub contract_type: String,
-//     pub quote_precision: String,
-//     pub quote_asset_precision: String,
-//     pub base_asset_precision: String,
-//     pub delivery_date: Option<i64>,
-//     pub onboard_date: Option<i64>,
-//     pub order_types: Vec<String>,
-//     pub filters: Vec<Filter>,
-//     pub permissions: Vec<String>,
-// }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Symbol {
@@ -84,14 +61,14 @@ pub struct Symbol {
     pub base_asset: String,
     pub quote_asset: String,
 
-    pub base_asset_precision: u8,  // 数字
-    pub quote_asset_precision: u8, // 数字
-    pub quote_precision: u8,       // 数字
+    pub base_asset_precision: u8,          // 数字
+    pub quote_asset_precision: Option<u8>, // 数字
+    pub quote_precision: u8,               // 数字
 
-    pub iceberg_allowed: bool,
-    pub oco_allowed: bool,
-    pub is_margin_trading_allowed: bool,
-    pub is_spot_trading_allowed: bool,
+    pub iceberg_allowed: Option<bool>,
+    pub oco_allowed: Option<bool>,
+    pub is_margin_trading_allowed: Option<bool>,
+    pub is_spot_trading_allowed: Option<bool>,
 
     pub contract_type: Option<String>,
     pub delivery_date: Option<i64>,
