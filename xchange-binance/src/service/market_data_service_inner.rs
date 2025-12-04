@@ -1,6 +1,7 @@
 use crate::binance::BinanceAdapters;
 use crate::binance_exchange::BinanceExchange;
 use crate::binance_resilience::REQUEST_WEIGHT_RATE_LIMITER;
+use crate::client::binance_futures::BinanceFuturesAuthed;
 use crate::client::binance_spot::BinanceAuthed;
 use crate::dto::BinanceError;
 use crate::dto::marketdata::KlineInterval;
@@ -104,6 +105,40 @@ impl MarketDataInner {
             .cloned();
 
         let auth_client = self.base.client.spot.clone();
+
+        let mut resilient = ResilientCall::new(move || {
+            let auth_client = auth_client.clone();
+            async move { auth_client.exchange_info().await.map_err(boxed) }
+        });
+
+        if let Some(retry) = retry {
+            resilient = resilient.with_retry(retry)
+        }
+        if let Some(limiter) = limit {
+            resilient = resilient.with_rate_limiter(limiter);
+        }
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
+    }
+
+    pub async fn future_exchange_info(&self) -> Result<BinanceExchangeInfo, BinanceError> {
+        let retry = self
+            .base
+            .exchange
+            .resilience_registries
+            .retry(REQUEST_WEIGHT_RATE_LIMITER);
+        let limit = self
+            .base
+            .exchange
+            .resilience_registries
+            .rate_limiter(REQUEST_WEIGHT_RATE_LIMITER)
+            .as_ref()
+            .cloned();
+
+        let auth_client =
+            self.base.client.futures.clone().ok_or_else(|| {
+                boxed(BinanceError::ClientNotInitialized("futures client".into()))
+            })?;
 
         let mut resilient = ResilientCall::new(move || {
             let auth_client = auth_client.clone();
@@ -225,10 +260,5 @@ impl MarketDataInner {
         }
 
         resilient.call().await.map_err(|e| BinanceError::from(e))
-    }
-
-    pub async fn future_exchange_info(&self) -> Result<BinanceExchangeInfo, BinanceError> {
-        // TODO: 调用 exchange API，并加 retry / rate limiter
-        unimplemented!("get_exchange_info not implemented yet")
     }
 }
