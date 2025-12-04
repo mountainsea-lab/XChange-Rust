@@ -261,4 +261,94 @@ impl MarketDataInner {
 
         resilient.call().await.map_err(|e| BinanceError::from(e))
     }
+
+    pub async fn future_klines(
+        &self,
+        pair: CurrencyPair,
+        interval: KlineInterval,
+        limit: Option<u32>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
+    ) -> Result<Vec<BinanceKline>, BinanceError> {
+        // Resilience 配置
+        let retry = self
+            .base
+            .exchange
+            .resilience_registries
+            .retry(REQUEST_WEIGHT_RATE_LIMITER);
+        let limiter = self
+            .base
+            .exchange
+            .resilience_registries
+            .rate_limiter(REQUEST_WEIGHT_RATE_LIMITER)
+            .as_ref()
+            .cloned();
+
+        // 提前准备常量数据
+        let future_client =
+            self.base.client.futures.clone().ok_or_else(|| {
+                boxed(BinanceError::ClientNotInitialized("futures client".into()))
+            })?;
+
+        let instrument_kind = InstrumentKind::CurrencyPair(pair.clone());
+        let pair_symbol = BinanceAdapters::to_symbol(&instrument_kind);
+        let interval_code = interval.code().to_string();
+
+        // Query 转换提前构造
+        let limit_q: Option<Query<u16>> = limit.map(|v| Query(v as u16));
+        let start_q: Option<Query<u64>> = start_time.map(Query);
+        let end_q: Option<Query<u64>> = end_time.map(Query);
+
+        // ResilientCall
+        let mut resilient = ResilientCall::new({
+            // 全部 clone，闭包里直接 move
+            let future_client = future_client.clone();
+            let instrument_kind = instrument_kind.clone();
+            let pair_symbol = pair_symbol.clone();
+            let interval = interval.clone();
+            let interval_code = interval_code.clone();
+            let limit_q = limit_q.clone();
+            let start_q = start_q.clone();
+            let end_q = end_q.clone();
+
+            move || {
+                let future_client = future_client.clone();
+                let instrument_kind = instrument_kind.clone();
+                let interval = interval.clone();
+                let pair_symbol = pair_symbol.clone();
+                let interval_code = interval_code.clone();
+                let limit_q = limit_q.clone();
+                let start_q = start_q.clone();
+                let end_q = end_q.clone();
+
+                async move {
+                    let raw: Vec<Vec<serde_json::Value>> = future_client
+                        .klines(
+                            Query(pair_symbol.as_str()),
+                            Query(interval_code.as_str()),
+                            limit_q,
+                            start_q,
+                            end_q,
+                        )
+                        .await
+                        .map_err(boxed)?;
+
+                    Ok(raw
+                        .into_iter()
+                        .map(|v| BinanceKline::new(&instrument_kind, &interval, v.as_slice()))
+                        .collect::<Vec<BinanceKline>>())
+                }
+            }
+        });
+
+        // 应用 retry / rate limiter
+        if let Some(r) = retry {
+            resilient = resilient.with_retry(r);
+        }
+        if let Some(l) = limiter {
+            resilient = resilient.with_rate_limiter(l);
+        }
+
+        resilient.call().await.map_err(|e| BinanceError::from(e))
+    }
 }
