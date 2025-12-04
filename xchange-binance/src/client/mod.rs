@@ -20,15 +20,38 @@ pub struct BinanceClient {
     pub futures_inverse: Option<Arc<BinanceFuturesAuthedClient>>,
 }
 
-impl BinanceClient {
-    pub fn new_with_exchange_type(
-        base_url: &str,
-        api_key: Option<&str>,
-        exchange_type: Option<ExchangeType>,
-    ) -> Result<Self, RetrofitError> {
-        // ---------------------
+#[derive(Debug, Clone)]
+pub struct BinanceClientBuilder<'a> {
+    base_url: &'a str,
+    api_key: Option<&'a str>,
+    exchange_type: ExchangeType,
+}
+
+impl<'a> BinanceClientBuilder<'a> {
+    /// 创建 builder，默认 exchange_type = Spot
+    pub fn new(base_url: &'a str) -> Self {
+        Self {
+            base_url,
+            api_key: None,
+            exchange_type: ExchangeType::Spot,
+        }
+    }
+
+    /// 设置 API Key
+    pub fn api_key(mut self, key: &'a str) -> Self {
+        self.api_key = Some(key);
+        self
+    }
+
+    /// 设置交易类型（Spot / Futures / Inverse / PortfolioMargin）
+    pub fn exchange_type(mut self, t: ExchangeType) -> Self {
+        self.exchange_type = t;
+        self
+    }
+
+    /// 构建客户端
+    pub fn build(self) -> Result<BinanceClient, RetrofitError> {
         // 内部辅助函数：创建 client
-        // ---------------------
         fn make_client<T>(
             base_url: &str,
             api_key: Option<&str>,
@@ -43,39 +66,38 @@ impl BinanceClient {
         }
 
         // ---------------------
-        // 1) Spot client（公有或带鉴权）
+        // 1) Spot client
         // ---------------------
-        let spot: Arc<_> = if api_key.is_some() {
-            make_client(base_url, api_key, BinanceAuthedClient::with_client)?
-        } else {
-            make_client(base_url, None, BinanceAuthedClient::with_client)?
-        };
+        let spot = make_client(
+            self.base_url,
+            self.api_key,
+            BinanceAuthedClient::with_client,
+        )?;
 
         // ---------------------
-        // 2) Futures / Inverse Futures
+        // 2) Futures / Inverse client
         // ---------------------
-        let (futures, futures_inverse) = match (api_key, exchange_type) {
-            (Some(key), Some(ExchangeType::Futures))
-            | (Some(key), Some(ExchangeType::PortfolioMargin)) => (
+        let (futures, futures_inverse) = match self.exchange_type {
+            ExchangeType::Futures | ExchangeType::PortfolioMargin => (
                 Some(make_client(
                     FUTURES_URL,
-                    Some(key),
+                    self.api_key,
                     BinanceFuturesAuthedClient::with_client,
                 )?),
                 None,
             ),
-            (Some(key), Some(ExchangeType::Inverse)) => (
+            ExchangeType::Inverse => (
                 None,
                 Some(make_client(
                     INVERSE_FUTURES_URL,
-                    Some(key),
+                    self.api_key,
                     BinanceFuturesAuthedClient::with_client,
                 )?),
             ),
-            _ => (None, None),
+            ExchangeType::Spot => (None, None),
         };
 
-        Ok(Self {
+        Ok(BinanceClient {
             spot,
             futures,
             futures_inverse,

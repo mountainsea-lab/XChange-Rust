@@ -262,6 +262,14 @@ impl MarketDataInner {
         resilient.call().await.map_err(|e| BinanceError::from(e))
     }
 
+    pub async fn future_klines_default_limit(
+        &self,
+        pair: CurrencyPair,
+        interval: KlineInterval,
+    ) -> Result<Vec<BinanceKline>, BinanceError> {
+        self.future_klines(pair, interval, None, None, None).await
+    }
+
     pub async fn future_klines(
         &self,
         pair: CurrencyPair,

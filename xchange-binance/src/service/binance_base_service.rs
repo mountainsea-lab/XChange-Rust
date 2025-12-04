@@ -1,12 +1,13 @@
 use crate::binance_exchange::{BinanceExchange, EXCHANGE_TYPE_KEY};
-use crate::client::BinanceClient;
 use crate::client::binance_spot::BinanceAuthed;
+use crate::client::{BinanceClient, BinanceClientBuilder};
 use crate::dto::BinanceError;
 use crate::dto::meta::binance_system::BinanceSystemStatus;
 use crate::service::{BinanceEd25519Digest, BinanceHmacDigest};
 use std::sync::Arc;
 use xchange_core::ValueFactory;
 use xchange_core::client::{ResilientCall, boxed};
+use xchange_core::exchange::ExchangeType;
 use xchange_core::exchange_specification::ExchangeParam;
 use xchange_core::rescu::params_digest::ParamsDigest;
 
@@ -47,11 +48,10 @@ impl BinanceBaseService {
 
         drop(spec_read); // 提前释放锁
 
-        let client = Arc::new(BinanceClient::new_with_exchange_type(
-            &base_url,
-            api_key.as_deref(),
-            exchange_type,
-        )?);
+        let client = BinanceClientBuilder::new(&base_url)
+            .api_key(api_key.as_deref().unwrap_or("")) // 如果有 api_key，就传入，否则可忽略
+            .exchange_type(exchange_type.unwrap_or(ExchangeType::Spot)) // 如果没有传入，默认 Spot
+            .build()?;
 
         // ---------------------
         // 4) 构建 digest（ED25519 / HMAC）
@@ -66,7 +66,7 @@ impl BinanceBaseService {
         Ok(Self {
             exchange,
             api_key,
-            client,
+            client: client.into(),
             digest,
         })
     }

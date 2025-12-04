@@ -49,11 +49,17 @@ pub enum ExchangeParam {
 }
 
 impl ExchangeParam {
+    // pub fn as_exchange_type(&self) -> Option<ExchangeType> {
+    //     if let ExchangeParam::ExchangeType(t) = self {
+    //         Some(t.clone())
+    //     } else {
+    //         None
+    //     }
+    // }
     pub fn as_exchange_type(&self) -> Option<ExchangeType> {
-        if let ExchangeParam::ExchangeType(t) = self {
-            Some(t.clone())
-        } else {
-            None
+        match self {
+            ExchangeParam::ExchangeType(t) => Some(t.clone()),
+            _ => None,
         }
     }
 }

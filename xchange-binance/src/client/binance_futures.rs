@@ -7,7 +7,7 @@ pub trait BinanceFuturesAuthed {
     #[get("/fapi/v1/exchangeInfo")]
     async fn exchange_info(&self) -> Result<BinanceExchangeInfo, RetrofitError>;
 
-    #[get("/fapi/v3/klines")]
+    #[get("/fapi/v1/klines")]
     #[allow(non_snake_case)]
     async fn klines(
         &self,

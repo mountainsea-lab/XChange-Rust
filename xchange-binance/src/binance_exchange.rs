@@ -227,8 +227,10 @@ impl BinanceExchange {
         };
 
         // 设置交易所特定参数
-        spec.exchange_specific_parameters
-            .insert("EXCHANGE_TYPE".into(), ExchangeParam::String("SPOT".into()));
+        spec.exchange_specific_parameters.insert(
+            EXCHANGE_TYPE_KEY.into(),
+            ExchangeParam::String("SPOT".into()),
+        );
         spec.exchange_specific_parameters
             .insert("USE_SANDBOX".into(), ExchangeParam::Boolean(false));
 
