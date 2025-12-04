@@ -133,16 +133,6 @@ async fn test_futures_exchange_info() {
             panic!("Failed to fetch exchange info: {:?}", err);
         }
     }
-    //
-    // assert!(result.is_ok(), "exchange_info() should succeed");
-    //
-    // let info: BinanceExchangeInfo = result.unwrap();
-    // println!("BinanceExchangeInfo = {:?}", info);
-    //
-    // assert!(
-    //     !info.symbols.is_empty(),
-    //     "exchange_info symbols should not be empty"
-    // );
 }
 
 #[tokio::test]
