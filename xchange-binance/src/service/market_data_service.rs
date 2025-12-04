@@ -34,6 +34,7 @@ impl BinanceMarketDataService {
             binance_time() -> Result<BinanceTime, BinanceError>,
             system_status() -> Result<BinanceSystemStatus, BinanceError>,
             exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
+            future_exchange_info() -> Result<BinanceExchangeInfo,BinanceError>,
             last_kline(pair: CurrencyPair, interval: KlineInterval) -> Result<BinanceKline, BinanceError>,
             klines_default_limit(pair: CurrencyPair,interval: KlineInterval) -> Result<Vec<BinanceKline>, BinanceError>,
             klines(pair: CurrencyPair,interval: KlineInterval,limit: Option<u32>,start_time: Option<u64>,end_time: Option<u64>) -> Result<Vec<BinanceKline>, BinanceError>,
