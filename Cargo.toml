@@ -26,7 +26,6 @@ thiserror = "2.0.11"
 async-trait = "0.1.89"
 tokio = "1.44.0"
 futures = "0.3.31"
-reqwest = "0.12.24"
 tracing = "0.1.41"
 
 retrofit-rs = "0.2.0"

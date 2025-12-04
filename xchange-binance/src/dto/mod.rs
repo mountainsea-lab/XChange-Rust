@@ -12,9 +12,6 @@ use xchange_core::rescu::params_digest::DigestError;
 
 #[derive(Debug, Error)]
 pub enum BinanceError {
-    #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
-
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -23,9 +20,6 @@ pub enum BinanceError {
 
     #[error("Binance returned error: {0}")]
     Binance(#[from] BinanceException),
-
-    #[error("Unexpected HTTP status {0}: {1}")]
-    HttpStatus(reqwest::StatusCode, String),
 
     #[error("Retrofit error: {0}")]
     Retrofit(#[from] retrofit_rs::RetrofitError),

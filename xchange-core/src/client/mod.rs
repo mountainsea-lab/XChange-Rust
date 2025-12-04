@@ -1,4 +1,3 @@
-pub mod client_config;
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use std::{collections::HashMap, sync::Arc, time::Duration};
