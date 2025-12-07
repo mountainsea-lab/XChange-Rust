@@ -53,6 +53,9 @@ pub enum BinanceError {
 
     #[error("Message Description: {0}")]
     Message(String),
+
+    #[error("Exchange error: {0}")]
+    Exchange(#[from] ExchangeError),
 }
 
 impl From<Box<dyn std::error::Error + Send + Sync>> for BinanceError {
