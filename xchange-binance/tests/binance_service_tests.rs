@@ -342,3 +342,44 @@ async fn test_klines_default_futures_limit() {
     println!("First = {:?}", klines.first());
     println!("Last  = {:?}", klines.last());
 }
+
+#[tokio::test]
+async fn test_klines_futures_limit() {
+    // 1. 初始化 exchange
+    let exchange = new_exchange_futures()
+        .await
+        .expect("default_exchange() should succeed");
+
+    // 2. 获取服务
+    let service: Arc<dyn MarketDataService + Send + Sync> = exchange.market_data_service().unwrap();
+
+    let market: Arc<BinanceMarketDataService> = service_arc(&service);
+
+    let cp = CurrencyPair::from_symbols("BTC", "USDT");
+
+    let limit = Some(10);
+    let start_time = Some(1765635091000);
+    let end_time = Some(1765635691000);
+
+    // 3. API 调用
+    let result = market
+        .future_klines(cp, KlineInterval::M1, limit, start_time, end_time)
+        .await;
+
+    // 4. 成功性检查
+    assert!(
+        result.is_ok(),
+        "future_klines_default_limit() should succeed, err = {:?}",
+        result.err()
+    );
+
+    let klines = result.unwrap();
+    println!("klines len = {:?}", klines.len());
+    assert_eq!(klines.len(), 10);
+
+    // 5. 不应为空
+    assert!(
+        !klines.is_empty(),
+        "klines_default_limit() should return > 0 klines"
+    );
+}

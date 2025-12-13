@@ -36,9 +36,9 @@ pub trait BinanceAuthed {
         &self,
         symbol: Query<&str>,
         interval: Query<&str>,
-        limit: Option<Query<u16>>,
-        startTime: Option<Query<u64>>,
-        endTime: Option<Query<u64>>,
+        limit: Query<u16>,
+        startTime: Query<u64>,
+        endTime: Query<u64>,
     ) -> Result<Vec<Vec<serde_json::Value>>, RetrofitError>;
 
     // DELETE, PUT 等方法同理

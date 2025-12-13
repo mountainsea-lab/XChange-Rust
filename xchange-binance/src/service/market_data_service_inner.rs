@@ -180,7 +180,7 @@ impl MarketDataInner {
         &self,
         pair: CurrencyPair,
         interval: KlineInterval,
-        limit: Option<u32>,
+        limit: Option<u16>,
         start_time: Option<u64>,
         end_time: Option<u64>,
     ) -> Result<Vec<BinanceKline>, BinanceError> {
@@ -205,9 +205,9 @@ impl MarketDataInner {
         let interval_code = interval.code().to_string();
 
         // Query 转换提前构造
-        let limit_q: Option<Query<u16>> = limit.map(|v| Query(v as u16));
-        let start_q: Option<Query<u64>> = start_time.map(Query);
-        let end_q: Option<Query<u64>> = end_time.map(Query);
+        let limit_q = limit.unwrap_or(500);
+        let start_q = start_time.unwrap_or(0);
+        let end_q = end_time.unwrap_or(u64::MAX);
 
         // ResilientCall
         let mut resilient = ResilientCall::new({
@@ -236,9 +236,9 @@ impl MarketDataInner {
                         .klines(
                             Query(pair_symbol.as_str()),
                             Query(interval_code.as_str()),
-                            limit_q,
-                            start_q,
-                            end_q,
+                            Query(limit_q),
+                            Query(start_q),
+                            Query(end_q),
                         )
                         .await
                         .map_err(boxed)?;
@@ -289,7 +289,7 @@ impl MarketDataInner {
         &self,
         pair: CurrencyPair,
         interval: KlineInterval,
-        limit: Option<u32>,
+        limit: Option<u16>,
         start_time: Option<u64>,
         end_time: Option<u64>,
     ) -> Result<Vec<BinanceKline>, BinanceError> {
@@ -318,9 +318,12 @@ impl MarketDataInner {
         let interval_code = interval.code().to_string();
 
         // Query 转换提前构造
-        let limit_q: Option<Query<u16>> = limit.map(|v| Query(v as u16));
-        let start_q: Option<Query<u64>> = start_time.map(Query);
-        let end_q: Option<Query<u64>> = end_time.map(Query);
+        // let limit_q: Option<Query<u16>> = limit.map(|v| Query(v as u16));
+        // let start_q: Option<Query<u64>> = start_time.map(Query);
+        // let end_q: Option<Query<u64>> = end_time.map(Query);
+        let limit_q = limit.unwrap_or(500);
+        let start_q = start_time.unwrap_or(0);
+        let end_q = end_time.unwrap_or(u64::MAX);
 
         // ResilientCall
         let mut resilient = ResilientCall::new({
@@ -349,9 +352,9 @@ impl MarketDataInner {
                         .klines(
                             Query(pair_symbol.as_str()),
                             Query(interval_code.as_str()),
-                            limit_q,
-                            start_q,
-                            end_q,
+                            Query(limit_q),
+                            Query(start_q),
+                            Query(end_q),
                         )
                         .await
                         .map_err(boxed)?;
